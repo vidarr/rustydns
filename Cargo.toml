@@ -1,0 +1,6 @@
+[package]
+name = "rustydns"
+version = "0.1.0"
+authors = ["Michael Josef Beer <michael@ubeer.org>"]
+
+[dependencies]
