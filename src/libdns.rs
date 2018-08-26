@@ -14,6 +14,7 @@ pub struct Label {
 /*----------------------------------------------------------------------------*/
 
 pub struct Name {
+    /* Last Label MUST always be empty ! */
     data : Vec<Label>,
 }
 
@@ -90,7 +91,7 @@ impl Name {
 
         let mut v = Vec::<Label>::new();
 
-        for label_str  in string.split(".") {
+        for label_str in string.split(".") {
 
             match Label::from_str(label_str) {
                 Ok(label) => {
@@ -98,6 +99,19 @@ impl Name {
                 },
                 Err(_) => return Err(())
             };
+        }
+
+        let empty = Label::from_str("").unwrap();
+
+        // Ok, that's really ugly, perhaps we can simplify this
+        // with a bit more knowledge about Rust?
+        let tail_empty = empty.eq(match v.last() {
+            None => return Err(()),
+            Some(el) => el,
+        });
+
+        if ! tail_empty {
+            v.push(empty);
         }
 
         Ok(Name { data: v,})
@@ -241,13 +255,8 @@ impl ToBytes for Name {
     fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
 
         for l in &self.data {
-            let retval = l.to_bytes(target);
-            if retval.is_err() {
-                return retval;
-            }
+            let l = l.to_bytes(target)?;
         }
-
-        target.push(0);
 
         Ok(())
 
