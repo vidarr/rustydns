@@ -1,5 +1,7 @@
 use std::str;
+use std::slice;
 use std::fmt;
+use std::cmp;
 use std::io;
 
 /******************************************************************************
@@ -91,6 +93,12 @@ impl Name {
 
     }
 
+    pub fn iter(&self) -> slice::Iter<Label> {
+
+        self.data.iter()
+
+    }
+
 }
 
 /*------------------------------------------------------------------------*/
@@ -157,3 +165,13 @@ impl fmt::Display for Name {
 }
 
 /*----------------------------------------------------------------------------*/
+
+impl cmp::PartialEq for Label {
+
+    fn eq(&self, other: &Label) -> bool {
+
+        self.data.iter().zip(other.data.iter()).all(|(a,b)| a == b)
+
+    }
+
+}
