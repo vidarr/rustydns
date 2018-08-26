@@ -3,4 +3,9 @@ name = "rustydns"
 version = "0.1.0"
 authors = ["Michael Josef Beer <michael@ubeer.org>"]
 
+[lib]
+
+name = "rustydns"
+path = "src/libdns.rs"
+
 [dependencies]
