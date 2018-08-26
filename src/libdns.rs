@@ -2,7 +2,6 @@ use std::str;
 use std::slice;
 use std::fmt;
 use std::cmp;
-use std::io;
 
 /******************************************************************************
  *                                             TYPES
@@ -67,9 +66,21 @@ pub struct DnsMessage {
 
 }
 
+/******************************************************************************
+ *                                            TRAITS
+ ******************************************************************************/
+
+pub trait ToBytes<T=Self> {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str>;
+
+    fn from_bytes(bytes: &Vec<u8>, offset: usize) -> Result<T, &'static str>;
+
+}
+
 
 /******************************************************************************
- *                                       PUBLIC FUNCTIONS
+                                         PUBLIC FUNCTIONS
  ******************************************************************************/
 
 impl Name {
@@ -168,9 +179,98 @@ impl fmt::Display for Name {
 
 impl cmp::PartialEq for Label {
 
+    /* TODO: Compare case-insensitive */
     fn eq(&self, other: &Label) -> bool {
 
         self.data.iter().zip(other.data.iter()).all(|(a,b)| a == b)
+
+    }
+
+}
+
+impl ToBytes for Label {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+
+        let len = self.data[0];
+
+        if len > 63 {
+            return Err("Label too long")
+        }
+
+        target.extend(self.data[..(len + 1) as usize].iter().cloned());
+
+        Ok(())
+
+    }
+
+    fn from_bytes(bytes: &Vec<u8>, offset : usize) -> Result<Self, &'static str> {
+
+        let bytes_len = bytes.len();
+
+        if bytes_len < offset {
+            return Err("Label too short");
+        }
+
+        let len = bytes[0] as usize;
+
+        if bytes_len < offset + len + 1 {
+            return Err("too few bytes");
+        }
+
+        if len > 63 {
+            return Err("Label too long");
+        }
+
+        let mut v = [0u8; 64];
+
+        v.copy_from_slice(&bytes[offset..offset + len + 1]);
+
+       Ok(Label {
+            data: v,
+        })
+
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+impl ToBytes for Name {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+
+        for l in &self.data {
+            let retval = l.to_bytes(target);
+            if retval.is_err() {
+                return retval;
+            }
+        }
+
+        target.push(0);
+
+        Ok(())
+
+    }
+
+    fn from_bytes(bytes: &Vec<u8>, offset: usize) -> Result<Self, &'static str> {
+
+        let mut o = offset;
+        let mut v = Vec::<Label>::new();
+
+        let mut len : usize = 1;
+
+        while 0 < len {
+
+            let l = Label::from_bytes(bytes, o)?;
+
+            len = l.data[0] as usize;
+            v.push(l);
+
+            o = o + len + 1;
+        }
+
+        Ok(Name { data: v})
 
     }
 

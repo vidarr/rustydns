@@ -1,8 +1,7 @@
 extern crate rustydns;
+use rustydns::ToBytes;
 
 /*------------------------------------------------------------------------*/
-
-use std::io;
 
 fn main() {
 
@@ -16,5 +15,17 @@ fn main() {
     for (l1, l2) in name1.iter().zip(name2.iter()) {
         println!("{}", l1.eq(&l2));
     }
+
+    let mut name_bytes = Vec::<u8>::new();
+    match name1.to_bytes( &mut name_bytes) {
+        Err(s) => println!("{}", s),
+        Ok(_) => ()
+    };
+
+    for i in name_bytes {
+        print!("{} ", i);
+    }
+
+    println!("");
 
 }
