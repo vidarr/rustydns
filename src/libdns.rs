@@ -18,7 +18,7 @@ pub struct Name {
     data : Vec<Label>,
 }
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 pub enum QuestionType {
 
@@ -33,7 +33,7 @@ pub enum QuestionType {
 
 }
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 /// Representation of a DNS question
 pub struct Question {
@@ -44,7 +44,7 @@ pub struct Question {
 
 }
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 /// Representation of a DNS Resource Record
 pub struct ResourceRecord {
@@ -53,7 +53,7 @@ pub struct ResourceRecord {
 
 }
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 /// In-memory representation of a DNS message
 pub struct DnsMessage {
@@ -71,23 +71,52 @@ pub struct DnsMessage {
  *                                            TRAITS
  ******************************************************************************/
 
-pub trait ToBytes<T=Self> {
+pub trait AsBytes<T=Self> {
 
     fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str>;
 
-    fn from_bytes(bytes: &Vec<u8>, offset: usize) -> Result<T, &'static str>;
+    fn from_bytes(bytes: &[u8]) -> Result<T, &'static str>;
+
+}
+
+
+
+pub trait AsStr<T=Self> {
+
+    fn from_str(string : &str) -> Result<T, ()>;
 
 }
 
 
 /******************************************************************************
-                                         PUBLIC FUNCTIONS
+                                      AsStr implementation
  ******************************************************************************/
 
-impl Name {
+impl AsStr for Label {
+
+    /// DNS Label from a string
+    fn from_str(string : &str) -> Result<Self, ()> {
+
+        let len = string.len();
+
+        if 63 < len {
+            return Err(())
+        }
+
+        let mut n :[u8; 64] = [0; 64];
+        n[0] = len as u8;
+        n[1 .. len + 1].clone_from_slice(string.as_bytes());
+        Ok( Label { data: n,})
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+impl AsStr for Name {
 
     /// Parse a string into a DNS Name
-    pub fn from_str(string : &str) -> Result<Self, ()> {
+    fn from_str(string : &str) -> Result<Self, ()> {
 
         let mut v = Vec::<Label>::new();
 
@@ -118,36 +147,99 @@ impl Name {
 
     }
 
-    pub fn iter(&self) -> slice::Iter<Label> {
+}
 
-        self.data.iter()
+/******************************************************************************
+ *                                    AsBytes Implementation
+ ******************************************************************************/
+
+impl AsBytes for Label {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+
+        let len = self.data[0];
+
+        if len > 63 {
+            return Err("Label too long")
+        }
+
+        target.extend(self.data[..(len + 1) as usize].iter().cloned());
+
+        Ok(())
 
     }
 
-}
+    /*------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------*/
+    fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
 
-impl Label {
+        let bytes_len = bytes.len();
 
-    /// DNS Label from a string
-    pub fn from_str(string : &str) -> Result<Self, ()> {
+        let len = bytes[0] as usize;
 
-        let len = string.len();
-
-        if 63 < len {
-            return Err(())
+        if bytes_len < len + 1 {
+            return Err("too few bytes");
         }
 
-        let mut n :[u8; 64] = [0; 64];
-        n[0] = len as u8;
-        n[1 .. len + 1].clone_from_slice(string.as_bytes());
-        Ok( Label { data: n,})
+        if len > 63 {
+            return Err("Label too long");
+        }
+
+        let mut v = [0u8; 64];
+
+        v[.. len + 1].copy_from_slice(&bytes[.. len + 1]);
+
+       Ok(Label {
+            data: v,
+        })
+
     }
 
 }
 
 /*----------------------------------------------------------------------------*/
+
+impl AsBytes for Name {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+
+        for l in &self.data {
+            let l = l.to_bytes(target)?;
+        }
+
+        Ok(())
+
+    }
+
+     /*-----------------------------------------------------------------------*/
+
+    fn from_bytes(bytes: &[u8])
+        -> Result<Self, &'static str> {
+
+        let mut offset = 0;
+        let mut v = Vec::<Label>::new();
+
+        let mut len : usize = 1;
+
+        while 0 < len {
+
+            let l = Label::from_bytes(&bytes[offset ..])?;
+
+            len = l.data[0] as usize;
+            v.push(l);
+
+            offset = offset + len + 1;
+        }
+
+        Ok(Name { data: v})
+
+    }
+
+}
+
+/******************************************************************************
+ *                                            Display
+ ******************************************************************************/
 
 impl fmt::Display for Label {
 
@@ -189,60 +281,21 @@ impl fmt::Display for Name {
 
 }
 
-/*----------------------------------------------------------------------------*/
+/******************************************************************************
+ *                                   PartialEq IMPLEMENTATION
+ ******************************************************************************/
 
 impl cmp::PartialEq for Label {
 
-    /* TODO: Compare case-insensitive */
     fn eq(&self, other: &Label) -> bool {
 
-        self.data.iter().zip(other.data.iter()).all(|(a,b)| a == b)
-
-    }
-
-}
-
-impl ToBytes for Label {
-
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
-
-        let len = self.data[0];
-
-        if len > 63 {
-            return Err("Label too long")
-        }
-
-        target.extend(self.data[..(len + 1) as usize].iter().cloned());
-
-        Ok(())
-
-    }
-
-    fn from_bytes(bytes: &Vec<u8>, offset : usize) -> Result<Self, &'static str> {
-
-        let bytes_len = bytes.len();
-
-        if bytes_len < offset {
-            return Err("Label too short");
-        }
-
-        let len = bytes[0] as usize;
-
-        if bytes_len < offset + len + 1 {
-            return Err("too few bytes");
-        }
-
-        if len > 63 {
-            return Err("Label too long");
-        }
-
-        let mut v = [0u8; 64];
-
-        v.copy_from_slice(&bytes[offset..offset + len + 1]);
-
-       Ok(Label {
-            data: v,
-        })
+        self.data.iter().zip(other.data.iter()).all(
+            |(a,b)| {
+                let a_ascii = *a as char;
+                let b_ascii = *b as char;
+                a_ascii.to_ascii_uppercase().eq(
+                    &b_ascii.to_ascii_uppercase())
+            })
 
     }
 
@@ -250,37 +303,28 @@ impl ToBytes for Label {
 
 /*----------------------------------------------------------------------------*/
 
-impl ToBytes for Name {
+impl cmp::PartialEq for Name {
 
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+    fn eq(&self, other: &Name) -> bool {
 
-        for l in &self.data {
-            let l = l.to_bytes(target)?;
-        }
-
-        Ok(())
-
-    }
-
-    fn from_bytes(bytes: &Vec<u8>, offset: usize) -> Result<Self, &'static str> {
-
-        let mut o = offset;
-        let mut v = Vec::<Label>::new();
-
-        let mut len : usize = 1;
-
-        while 0 < len {
-
-            let l = Label::from_bytes(bytes, o)?;
-
-            len = l.data[0] as usize;
-            v.push(l);
-
-            o = o + len + 1;
-        }
-
-        Ok(Name { data: v})
+        self.data.iter().zip(other.data.iter()).all(
+            |(a,b)| a.eq(b))
 
     }
 
 }
+/******************************************************************************
+ *                                      Name Implementation
+ ******************************************************************************/
+
+impl Name {
+
+    pub fn iter(&self) -> slice::Iter<Label> {
+
+        self.data.iter()
+
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
