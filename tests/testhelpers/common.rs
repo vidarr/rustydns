@@ -26,8 +26,37 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-mod common;
-mod generics;
+/*----------------------------------------------------------------------------*/
+pub fn print_name_bytes(bytes : &[u8]) {
 
-pub use self::common::*;
-pub use self::generics::*;
+    for b in bytes {
+        print!("{} ", b);
+    }
+    print!("      ");
+
+    let mut i = 0;
+    let mut size_u8 = bytes[i];
+    let mut size = size_u8 as usize;
+    print!("{}", size);
+
+    while (i + 1 + size < bytes.len()) && (size > 0) {
+
+        let l = &bytes[i + 1 .. i + 1 + size];
+
+        for b in l {
+            print!("{}", *b as char);
+        }
+
+        print!(" ");
+        i = i + 1 + size;
+
+        size_u8 = bytes[i];
+        size = size_u8 as usize;
+        print!("{}", size);
+
+    }
+
+    println!("");
+
+}
+/*----------------------------------------------------------------------------*/

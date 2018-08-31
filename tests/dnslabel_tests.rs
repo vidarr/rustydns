@@ -1,8 +1,36 @@
+// Copyright (c) 2018, Michael J. Beer
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+//   contributors may be used to endorse or promote products derived from
+//   this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 extern crate rustydns;
+mod testhelpers;
 
 use rustydns::Label;
 use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq};
-mod testhelpers;
 
 /******************************************************************************
  *                                             TESTS
@@ -25,7 +53,10 @@ fn test_label_from_bytes() {
     assert!(check_from_bytes::<Label>(&[0], Ok("")));
     assert!(check_from_bytes::<Label>(&[3, b'w', b'w', b'w'], Ok("www")));
     assert!(check_from_bytes::<Label>(&[2, b'A', b'a'], Ok("Aa")));
-    assert!(check_from_bytes::<Label>(&[64u8, 65], Err("LABEL EXCEEDS 63 char LIMIT")));
+    assert!(check_from_bytes::<Label>(
+            &[64u8, 65],
+            Err("LABEL EXCEEDS 63 char LIMIT"),
+            ));
 
 }
 
@@ -36,22 +67,23 @@ fn test_label_from_bytes() {
 fn check_label_partial_eq() {
 
     assert!(check_partial_eq::<Label>("", ""));
-    assert!(! check_partial_eq::<Label>("1", ""));
-    assert!(! check_partial_eq::<Label>("", "1"));
-    assert!( check_partial_eq::<Label>("1", "1"));
-    assert!( check_partial_eq::<Label>("a", "a"));
-    assert!(! check_partial_eq::<Label>("a", "aa"));
-    assert!( check_partial_eq::<Label>("aa", "aa"));
-    assert!( check_partial_eq::<Label>("A", "a"));
-    assert!( check_partial_eq::<Label>("dhgfe", "dhgfe"));
-    assert!( check_partial_eq::<Label>("DHGFE", "dhgfe"));
-    assert!( check_partial_eq::<Label>("dHGFE", "dhgfe"));
-    assert!( check_partial_eq::<Label>("dhgfE", "dhgfe"));
-    assert!( check_partial_eq::<Label>("dHGFe", "Dhgfe"));
-    assert!(! check_partial_eq::<Label>("dHGVe", "DhgFe"));
-    assert!(! check_partial_eq::<Label>(
+    assert!(!check_partial_eq::<Label>("1", ""));
+    assert!(!check_partial_eq::<Label>("", "1"));
+    assert!(check_partial_eq::<Label>("1", "1"));
+    assert!(check_partial_eq::<Label>("a", "a"));
+    assert!(!check_partial_eq::<Label>("a", "aa"));
+    assert!(check_partial_eq::<Label>("aa", "aa"));
+    assert!(check_partial_eq::<Label>("A", "a"));
+    assert!(check_partial_eq::<Label>("dhgfe", "dhgfe"));
+    assert!(check_partial_eq::<Label>("DHGFE", "dhgfe"));
+    assert!(check_partial_eq::<Label>("dHGFE", "dhgfe"));
+    assert!(check_partial_eq::<Label>("dhgfE", "dhgfe"));
+    assert!(check_partial_eq::<Label>("dHGFe", "Dhgfe"));
+    assert!(!check_partial_eq::<Label>("dHGVe", "DhgFe"));
+    assert!(!check_partial_eq::<Label>(
             "dHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGt",
-            "dHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGt"));
+            "dHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGt",
+            ));
 
 }
 
