@@ -28,33 +28,35 @@
 //
 use ::std::collections::HashMap;
 use dnslabel::Label;
+use dnsname::Name;
 use dnsrecord::Record;
 
 /******************************************************************************
  *                                             TYPE
  ******************************************************************************/
 
-pub enum ZoneEntry {
+pub enum ZoneEntry<'a> {
 
-    Record(Record),
-    Zone(Zone),
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-pub struct Zone {
-
-    entries : HashMap<Label, ZoneEntry>,
+    Record(&'a Record),
+    Zone(&'a Zone<'a>),
+    NotFound,
 
 }
 
 /*----------------------------------------------------------------------------*/
 
-impl Zone {
+pub struct Zone<'a> {
+
+    entries : HashMap<Label, ZoneEntry<'a>>,
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+impl<'a> Zone<'a> {
 
 
-    pub fn new() -> Zone {
+    pub fn new() -> Zone<'a> {
 
         Zone {
             entries : HashMap::new()
@@ -62,8 +64,30 @@ impl Zone {
 
     }
 
-}
+    /// Tries to find a record for name within the zone.
+    pub fn lookup(&self, name : &Name) -> Option<&Record> {
 
+        let current = &mut &ZoneEntry::Zone(self);
+
+        for label in name.into_iter() {
+
+            match current {
+                ZoneEntry::Zone(zone) => match zone.entries.get(label) {
+                    None => return None,
+                    Some(entry) => *current = entry,
+                },
+                _ => return None,
+            };
+
+        };
+
+        match current {
+            &mut ZoneEntry::Record(record) => Some(record),
+            __ => None,
+        }
+    }
+
+}
 /*----------------------------------------------------------------------------*/
 
 // impl Clone for Zone {

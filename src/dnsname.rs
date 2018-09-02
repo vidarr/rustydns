@@ -207,13 +207,13 @@ impl cmp::PartialEq for Name {
 
 /*----------------------------------------------------------------------------*/
 
-impl IntoIterator for Name {
+impl<'a> IntoIterator for &'a Name {
 
-    type Item = Label;
-    type IntoIter = ::std::vec::IntoIter<Label>;
+    type Item = &'a Label;
+    type IntoIter = ::std::slice::Iter<'a, Label>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.data.into_iter()
+        (&self.data).into_iter()
     }
 
 }
