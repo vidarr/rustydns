@@ -36,8 +36,9 @@ use dnsrecord::Record;
  *                                             TYPE
  ******************************************************************************/
 
-enum ProcessState {
+enum ProcessState<'a> {
 
+    AddZones(&'a mut Zone),
     Finished(Result<(), &'static str>),
     Ongoing
 
@@ -81,11 +82,11 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
-    // pub fn add(&mut self, name : Name, record : Record) -> Result<(), &'static str> {
+    pub fn add(&mut self, name : Name, record : Record) -> Result<(), &'static str> {
 
-    //     self._add(name.to_slice(), record)
+        self._add(name.to_slice(), record)
 
-    // }
+    }
 
     /*-----------------------------------------------------------------------*/
 
@@ -105,39 +106,30 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
-    // fn _add(&mut self, labels: &[Label], record : Record) -> Result<(), &'static str> {
+    fn _add(&mut self, labels: &[Label], record : Record) -> Result<(), &'static str> {
 
-    //     if labels.len() == 1 {
+        if labels.len() == 1 {
 
-    //         self.entries.insert(labels[0].clone(), ZoneEntry::Record(record));
-    //         Ok(())
+            self.entries.insert(labels[0].clone(), ZoneEntry::Record(record));
+            return Ok(());
 
-    //     } else {
+        } else {
 
-    //         let result = match self.entries.get_mut(&labels[0]) {
+            match self.entries.get_mut(&labels[0]) {
 
-    //             Some(ZoneEntry::Zone(ref mut zone)) => ProcessState::AddZones(zone._add(&labels[1..], record)),
-    //             Some(ZoneEntry::Record(_)) => ProcessState::Finished(Err("Record exists already")),
-    //             None => ProcessState::Ongoing
-    //         };
+                Some(ZoneEntry::Zone(ref mut zone)) => return zone._add(&labels[1..], record),
+                Some(ZoneEntry::Record(_)) => return Err("Record exists already"),
+                None => {},
+            };
 
-    //         match result {
+        }
 
-    //             ProcessState::Finished(r) => r,
-    //             ProcessState::Ongoing => {
-    //                 // let zone = self._create_new_zone()
-    //                 let mut zone = Zone::new();
-    //                 zone._add(&labels[1..], record)?;
-    //                 self.entries.insert(labels[0].clone(), ZoneEntry::Zone(zone));
-    //                 Ok(())
+        let mut zone = Zone::new();
+        zone._add(&labels[1..], record)?;
+        self.entries.insert(labels[0].clone(), ZoneEntry::Zone(zone));
+        Ok(())
+    }
 
-    //             }
-
-    //         }
-
-    //     }
-
-    // }
 
 }
 
