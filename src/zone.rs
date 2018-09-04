@@ -36,16 +36,6 @@ use dnsrecord::Record;
  *                                             TYPE
  ******************************************************************************/
 
-enum ProcessState<'a> {
-
-    AddZones(&'a mut Zone),
-    Finished(Result<(), &'static str>),
-    Ongoing
-
-}
-
-/*----------------------------------------------------------------------------*/
-
 enum ZoneEntry {
 
     Record(Record),
