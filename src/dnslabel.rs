@@ -33,6 +33,7 @@ use ::std::hash::{Hash, Hasher};
 
 /*----------------------------------------------------------------------------*/
 
+#[derive(Copy, Clone)]
 pub struct Label {
     data : [u8; 64],
 }
