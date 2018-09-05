@@ -26,11 +26,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-use std::str;
-use std::fmt;
-use std::cmp;
-use std::iter::IntoIterator;
-use dnstraits::{AsBytes, AsStr, DnsEntity};
+use ::std::str;
+use ::std::str::FromStr;
+use ::std::fmt;
+use ::std::cmp;
+use ::std::iter::IntoIterator;
+use dnstraits::{AsBytes, DnsEntity};
 use dnslabel::Label;
 
 /******************************************************************************
@@ -93,10 +94,12 @@ pub struct DnsMessage {
 
 /*----------------------------------------------------------------------------*/
 
-impl AsStr for Name {
+impl FromStr for Name {
+
+    type Err = &'static str;
 
     /// Parse a string into a DNS Name
-    fn from_str(string : &str) -> Result<Self, ()> {
+    fn from_str(string : &str) -> Result<Self, &'static str> {
 
         let mut v = Vec::<Label>::new();
 
@@ -106,7 +109,7 @@ impl AsStr for Name {
                 Ok(label) => {
                     v.insert(0, label);
                 },
-                Err(_) => return Err(())
+                Err(_) => return Err("String is not a DNS name")
             };
         }
 
@@ -115,7 +118,7 @@ impl AsStr for Name {
         // Ok, that's really ugly, perhaps we can simplify this
         // with a bit more knowledge about Rust?
         let tail_empty = empty.eq(match v.last() {
-            None => return Err(()),
+            None => return Err("Name is empty"),
             Some(el) => el,
         });
 

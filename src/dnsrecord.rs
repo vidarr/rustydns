@@ -26,6 +26,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+use dnstraits::{AsBytes, DnsEntity};
+use ::std::str::FromStr;
+use ::std::net::Ipv4Addr;
+use dnsname::Name;
 
 /******************************************************************************
  *                                             TYPE
@@ -47,11 +51,28 @@ pub enum ResourceType {
 /*----------------------------------------------------------------------------*/
 
 /// Representation of a DNS Resource Record
-pub struct Record {
+pub enum Record {
 
-    kind : ResourceType,
+    A(Ipv4Addr),
+    PTR(Name)
 
 }
+
+/*----------------------------------------------------------------------------*/
+
+//impl AsStr for Ipv4Addr {}
+//
+//
+//    fn from_str(string: &str) -> Result<Self, ()> {
+//        let addr = Ipv4Addr::from_str(string);
+//        if addr.is_err() {
+//            Err(())
+//        } else {
+//            addr
+//        }
+//    }
+//
+//}
 
 // /*----------------------------------------------------------------------------*/
 // 

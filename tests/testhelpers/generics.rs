@@ -26,18 +26,20 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-use rustydns::{AsBytes, AsStr, DnsEntity};
-use std::cmp::PartialEq;
+use ::std::str::FromStr;
+use ::std::cmp::PartialEq;
+use rustydns::{AsBytes, DnsEntity};
 use testhelpers::common::print_name_bytes;
 /*----------------------------------------------------------------------------*/
-pub fn check_from_bytes<T: AsBytes + AsStr + PartialEq<T>>
+
+pub fn check_from_bytes<T: AsBytes + FromStr + PartialEq<T>>
 (bytes: &[u8], exp: Result<&str, &str>) -> bool {
 
     let result = T::from_bytes(bytes);
     match exp {
         Ok(s) => {
             let entity = &result.unwrap();
-            let exp = &T::from_str(s).unwrap();
+            let exp = &T::from_str(s).ok().unwrap();
             exp.eq(entity)
         },
         Err(_) => result.is_err()
@@ -56,8 +58,8 @@ pub fn check_partial_eq<T: PartialEq + DnsEntity>(str1: &str, str2: &str) -> boo
         return false;
     }
 
-    let entity1 = result1.unwrap();
-    let entity2 = result2.unwrap();
+    let entity1 = result1.ok().unwrap();
+    let entity2 = result2.ok().unwrap();
 
     entity1.eq(&entity2)
 
@@ -65,14 +67,14 @@ pub fn check_partial_eq<T: PartialEq + DnsEntity>(str1: &str, str2: &str) -> boo
 
 /*----------------------------------------------------------------------------*/
 
-pub fn check_to_bytes<T: AsBytes + AsStr>(s: &str, expected: Vec<u8>) -> bool {
+pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool {
 
     let object = T::from_str(s);
     if object.is_err() {
         return false;
     }
 
-    let object = object.unwrap();
+    let object = object.ok().unwrap();
 
     let mut v = Vec::<u8>::new();
 

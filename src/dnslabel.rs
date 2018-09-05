@@ -26,9 +26,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+use ::std::str::FromStr;
 use ::std::fmt;
 use ::std::cmp;
-use dnstraits::{AsBytes, AsStr, DnsEntity};
+use dnstraits::{AsBytes, DnsEntity};
 use ::std::hash::{Hash, Hasher};
 
 /*----------------------------------------------------------------------------*/
@@ -86,15 +87,17 @@ impl AsBytes for Label {
 
 /*----------------------------------------------------------------------------*/
 
-impl AsStr for Label {
+impl FromStr for Label {
+
+    type Err = &'static str;
 
     /// DNS Label from a string
-    fn from_str(string : &str) -> Result<Self, ()> {
+    fn from_str(string : &str) -> Result<Self, &'static str> {
 
         let len = string.len();
 
         if 63 < len {
-            return Err(())
+            return Err("Label longer than 63 chars")
         }
 
         let mut n :[u8; 64] = [0; 64];
