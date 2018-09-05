@@ -58,21 +58,62 @@ pub enum Record {
 
 }
 
+
+
+impl FromStr for Record {
+
+    type Err = &'static str;
+
+    fn from_str(s : &str) -> Result<Record, &'static str> {
+
+        let s = s.to_string();
+        let mut splitter = s.splitn(2, " *");
+        let kind = splitter.next();
+        if kind.is_none() {
+            return Err("Malformed record: Missing whitespace?");
+        }
+
+        let kind = kind.unwrap();
+
+        let remainder = splitter.next();
+
+        if remainder.is_none() {
+            return Err("Malformed record: Missing whitespace?");
+        }
+
+        match kind {
+            "A" => match Ipv4Addr::from_str(remainder.unwrap()) {
+                Ok(addr) => Ok(Record::A(addr)),
+                Err(_) => Err("Could not parse IPv4 address")
+            },
+            &_ => Err("Unknown DNS type")
+        }
+
+    }
+
+}
 /*----------------------------------------------------------------------------*/
 
-//impl AsStr for Ipv4Addr {}
-//
-//
-//    fn from_str(string: &str) -> Result<Self, ()> {
-//        let addr = Ipv4Addr::from_str(string);
-//        if addr.is_err() {
-//            Err(())
-//        } else {
-//            addr
-//        }
-//    }
-//
-//}
+impl AsBytes for Ipv4Addr {
+
+    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+
+        target.extend_from_slice(&self.octets());
+        Ok(())
+
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Ipv4Addr, &'static str> {
+
+        if bytes.len() != 4 {
+            Err("Require exactly 4 octets")
+        } else {
+            Ok(Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]))
+        }
+
+    }
+
+}
 
 // /*----------------------------------------------------------------------------*/
 // 
