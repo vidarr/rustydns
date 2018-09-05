@@ -67,7 +67,8 @@ impl FromStr for Record {
     fn from_str(s : &str) -> Result<Record, &'static str> {
 
         let s = s.to_string();
-        let mut splitter = s.splitn(2, " *");
+        println!("{}", s);
+        let mut splitter = s.splitn(2, " ");
         let kind = splitter.next();
         if kind.is_none() {
             return Err("Malformed record: Missing whitespace?");
@@ -86,11 +87,30 @@ impl FromStr for Record {
                 Ok(addr) => Ok(Record::A(addr)),
                 Err(_) => Err("Could not parse IPv4 address")
             },
+            "PTR" => match Name::from_str(remainder.unwrap()) {
+                Ok(name) => Ok(Record::PTR(name)),
+                Err(_) => Err("Could not parse DNS name")
+            }
             &_ => Err("Unknown DNS type")
         }
 
     }
 
+}
+
+/*----------------------------------------------------------------------------*/
+
+impl ToString for Record {
+
+    fn to_string(&self) -> String {
+
+        match self {
+            Record::A(ref addr) => "A ".to_string() + &addr.to_string(),
+            Record::PTR(ref name) => "PTR ".to_string() + &name.to_string(),
+            _ => "Unknown Record".to_string()
+        }
+
+    }
 }
 /*----------------------------------------------------------------------------*/
 

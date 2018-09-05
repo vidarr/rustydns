@@ -89,3 +89,14 @@ pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool 
 }
 
 /*----------------------------------------------------------------------------*/
+
+pub fn check_to_from_string<T: FromStr + ToString>(s: &str, expected: Result<&'static str, &'static str>) -> bool {
+
+    let object = T::from_str(s);
+    match expected {
+        Err(_) => object.is_err(),
+        Ok(_) => s.eq(&object.ok().unwrap().to_string())
+    }
+}
+
+/*----------------------------------------------------------------------------*/
