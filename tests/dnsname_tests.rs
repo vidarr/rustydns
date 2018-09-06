@@ -29,7 +29,7 @@
 extern crate rustydns;
 
 use rustydns::Name;
-use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq};
+use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq, check_to_from_string};
 mod testhelpers;
 
 /*----------------------------------------------------------------------------*/
@@ -150,6 +150,26 @@ fn test_name_from_bytes() {
 /*----------------------------------------------------------------------------*/
 
 #[test]
-fn check_label_partial_eq() {
+fn check_name_partial_eq() {
     assert!(check_partial_eq::<Name>("", ""));
+    assert!(! check_partial_eq::<Name>("ubeer.org", ""));
+    assert!(check_partial_eq::<Name>("ubeer.org", "ubeer.org"));
+    assert!(check_partial_eq::<Name>("Ubeer.org", "ubeer.org"));
+    assert!(check_partial_eq::<Name>("UbeeR.orG", "ubeer.org"));
+    assert!(! check_partial_eq::<Name>("beer.org", "ubeer.org"));
+    assert!(! check_partial_eq::<Name>("org", "ubeer.org"));
 }
+
+/*----------------------------------------------------------------------------*/
+
+#[test]
+fn check_name_to_from_string() {
+    assert!(check_to_from_string::<Name>("", Ok("OK")));
+    assert!(check_to_from_string::<Name>("org", Ok("OK")));
+    assert!(check_to_from_string::<Name>("org", Ok("OK")));
+    assert!(check_to_from_string::<Name>("org.ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Name>("org.ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Name>("org.ubeer.www", Ok("OK")));
+}
+
+/*----------------------------------------------------------------------------*/

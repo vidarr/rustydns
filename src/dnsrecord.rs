@@ -30,6 +30,7 @@ use dnstraits::{AsBytes, DnsEntity};
 use ::std::str::FromStr;
 use ::std::net::Ipv4Addr;
 use dnsname::Name;
+use ::std::fmt;
 
 /******************************************************************************
  *                                             TYPE
@@ -58,7 +59,7 @@ pub enum Record {
 
 }
 
-
+/*----------------------------------------------------------------------------*/
 
 impl FromStr for Record {
 
@@ -67,7 +68,6 @@ impl FromStr for Record {
     fn from_str(s : &str) -> Result<Record, &'static str> {
 
         let s = s.to_string();
-        println!("{}", s);
         let mut splitter = s.splitn(2, " ");
         let kind = splitter.next();
         if kind.is_none() {
@@ -100,18 +100,19 @@ impl FromStr for Record {
 
 /*----------------------------------------------------------------------------*/
 
-impl ToString for Record {
+// impl ToString for Record {
+// 
+//     fn to_string(&self) -> String {
+// 
+//         match self {
+//             Record::A(ref addr) => "A ".to_string() + &addr.to_string(),
+//             Record::PTR(ref name) => "PTR ".to_string() + &name.to_string(),
+//             _ => "Unknown Record".to_string()
+//         }
+// 
+//     }
+// }
 
-    fn to_string(&self) -> String {
-
-        match self {
-            Record::A(ref addr) => "A ".to_string() + &addr.to_string(),
-            Record::PTR(ref name) => "PTR ".to_string() + &name.to_string(),
-            _ => "Unknown Record".to_string()
-        }
-
-    }
-}
 /*----------------------------------------------------------------------------*/
 
 impl AsBytes for Ipv4Addr {
@@ -135,100 +136,22 @@ impl AsBytes for Ipv4Addr {
 
 }
 
-// /*----------------------------------------------------------------------------*/
-// 
-// impl AsStr for ResourceRecord {
-// 
-//     /// Parse a string into a DNS Name
-//     fn from_str(string : &str) -> Result<Self, ()> {
-// 
-//         let mut v = Vec::<Label>::new();
-// 
-//         for label_str in string.split(".") {
-// 
-//             match Label::from_str(label_str) {
-//                 Ok(label) => {
-//                     v.insert(0, label);
-//                 },
-//                 Err(_) => return Err(())
-//             };
-//         }
-// 
-//         let empty = Label::from_str("").unwrap();
-// 
-//         // Ok, that's really ugly, perhaps we can simplify this
-//         // with a bit more knowledge about Rust?
-//         let tail_empty = empty.eq(match v.last() {
-//             None => return Err(()),
-//             Some(el) => el,
-//         });
-// 
-//         if ! tail_empty {
-//             v.push(empty);
-//         }
-// 
-//         Ok(Name { data: v,})
-// 
-//     }
-// 
-// }
-// 
-// /*----------------------------------------------------------------------------*/
-// 
-// impl AsBytes for ResourceRecord {
-// 
-//     fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
-// 
-//         for l in &self.data {
-//             let _l = l.to_bytes(target)?;
-//         }
-// 
-//         Ok(())
-// 
-//     }
-// 
-//      /*-----------------------------------------------------------------------*/
-// 
-//     fn from_bytes(bytes: &[u8])
-//         -> Result<Self, &'static str> {
-// 
-//         let mut offset = 0;
-//         let mut v = Vec::<Label>::new();
-// 
-//         let mut len : usize = 1;
-// 
-//         while 0 < len {
-// 
-//             let l = Label::from_bytes(&bytes[offset ..])?;
-// 
-//             len = l.len() as usize;
-//             v.push(l);
-// 
-//             offset = offset + len + 1;
-//         }
-// 
-//         Ok(Name { data: v})
-// 
-//     }
-// 
-// }
-// 
-// /*----------------------------------------------------------------------------*/
-// 
-// impl fmt::Display for ResourceRecord {
-// 
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-// 
-//         for l in &self.data {
-//             let result = write!(f, "{}", l);
-//             if result.is_err() {
-//                 return result;
-//             }
-//         }
-// 
-//         Ok(())
-// 
-//     }
-// 
-// }
+/*----------------------------------------------------------------------------*/
+
+impl fmt::Display for Record {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        let (t, d) =
+            match self {
+                Record::A(ref addr) => ("A", addr.to_string()),
+                Record::PTR(ref name) => ("PTR", name.to_string()),
+            };
+        write!(f, "{} {}", t, d);
+
+        Ok(())
+
+    }
+
+}
 /*----------------------------------------------------------------------------*/

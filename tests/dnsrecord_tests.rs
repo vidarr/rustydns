@@ -43,7 +43,7 @@ use ::testhelpers::check_to_from_string;
 fn record_from_string() {
 
     assert!(check_to_from_string::<Record>("A 1.2.3.4", Ok("OK")));
-    // assert!(check_to_from_string::<Record>("PTR org.ubeer", Ok("OK"))); FAILS
+    assert!(check_to_from_string::<Record>("PTR org.ubeer", Ok("OK")));
 
 }
 

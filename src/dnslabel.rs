@@ -27,7 +27,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 use ::std::str::FromStr;
-use ::std::string::ToString;
+// use ::std::string::ToString;
 use ::std::fmt;
 use ::std::cmp;
 use dnstraits::{AsBytes, DnsEntity};
@@ -121,7 +121,7 @@ impl fmt::Display for Label {
 
         for u in self.data.iter() {
             let result = match u {
-                &0 => write!(f, "0"),
+                &0 => break,
                 &other => write!(f, "{}", other as char),
             };
 

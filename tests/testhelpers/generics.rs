@@ -90,12 +90,21 @@ pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool 
 
 /*----------------------------------------------------------------------------*/
 
-pub fn check_to_from_string<T: FromStr + ToString>(s: &str, expected: Result<&'static str, &'static str>) -> bool {
+pub fn check_to_from_string<T>
+(s: &str, expected: Result<&'static str, &'static str>) -> bool
+    where T: FromStr + ToString {
 
     let object = T::from_str(s);
     match expected {
-        Err(_) => object.is_err(),
-        Ok(_) => s.eq(&object.ok().unwrap().to_string())
+        Err(_) => {
+        println!("Could not parse");
+        object.is_err()
+        },
+        Ok(_) => {
+            let serialized = object.ok().unwrap().to_string();
+            println!("Got '{}'   '{}'", s, serialized);
+            s.to_string().eq(&serialized)
+        }
     }
 }
 

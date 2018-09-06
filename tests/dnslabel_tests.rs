@@ -30,7 +30,7 @@ extern crate rustydns;
 mod testhelpers;
 
 use rustydns::Label;
-use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq};
+use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq, check_to_from_string};
 
 /******************************************************************************
  *                                             TESTS
@@ -85,6 +85,18 @@ fn check_label_partial_eq() {
             "dHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGVedHGt",
             ));
 
+}
+
+/*----------------------------------------------------------------------------*/
+
+#[test]
+fn check_label_to_from_string() {
+    assert!(check_to_from_string::<Label>("", Ok("OK")));
+    assert!(check_to_from_string::<Label>("org", Ok("OK")));
+    assert!(check_to_from_string::<Label>("TEST", Ok("OK")));
+    assert!(check_to_from_string::<Label>("ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Label>("Ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Label>("aFGgG", Ok("OK")));
 }
 
 // TODO: Tests for PartialEq for Label, Name

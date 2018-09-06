@@ -182,15 +182,12 @@ impl fmt::Display for Name {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        for l in &self.data {
-            let result = write!(f, "{}", l);
-            if result.is_err() {
-                return result;
-            }
-        }
+        // This one is going to be really expensive, isn't it???
 
+        let data = &self.data;
+        let strings = data.iter().map(|x| x.to_string()).filter(|x| ! "".eq(x));
+        write!(f, "{}", strings.rev().collect::<Vec<String>>().join("."));
         Ok(())
-
     }
 
 }
