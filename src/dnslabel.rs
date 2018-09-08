@@ -39,7 +39,6 @@ use ::std::slice;
 #[derive(Copy, Clone)]
 pub struct Label {
     data : [u8; 64],
-    normalized : [u8; 64],
 }
 
 /*----------------------------------------------------------------------------*/
@@ -76,16 +75,11 @@ impl AsBytes for Label {
             return Err("Label too long");
         }
 
-        let mut v = [0u8; 64];
+        let mut data = [0u8; 64];
 
-        v[.. len + 1].copy_from_slice(&bytes[.. len + 1]);
+        data[.. len + 1].copy_from_slice(&bytes[.. len + 1]);
 
-        let normalized = normalized_copy(&v);
-
-        Ok(Label {
-            data: v,
-            normalized: normalized,
-        })
+        Ok(Label { data })
 
     }
 
@@ -109,8 +103,7 @@ impl FromStr for Label {
         let mut data :[u8; 64] = [0; 64];
         data[0] = len as u8;
         data[1 .. len + 1].clone_from_slice(string.as_bytes());
-        let normalized = normalized_copy(&data);
-        Ok( Label { data, normalized})
+        Ok( Label { data})
 
 
     }
@@ -148,10 +141,13 @@ impl fmt::Display for Label {
 impl cmp::PartialEq for Label {
 
     fn eq(&self, other: &Label) -> bool {
-        let len = 1 + self.len();
 
-        self.normalized[0 .. len].iter().zip(
-            other.normalized[0 .. len].iter()).all(|(a,b)| a == b)
+        if self.len() != other.len() {
+            return false;
+        }
+
+        self.into_normalized_iter().zip(
+            other.into_normalized_iter()).all(|(a,b)| a == b)
 
     }
 
@@ -168,6 +164,12 @@ impl Label {
         self.data[0] as usize
     }
 
+    fn into_normalized_iter<'a>(&'a self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
+
+        let len = self.len();
+        self.data[1 .. 1 + len].into_iter().map(_to_ascii_uppercase)
+
+    }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -176,28 +178,17 @@ impl Hash for Label {
 
     fn hash<H: Hasher>(&self, state : &mut H) {
 
-        self.normalized.hash(state);
+        for octet in self.into_normalized_iter() {
+            octet.hash(state);
+        }
 
     }
-
 }
 
-/*----------------------------------------------------------------------------*/
+/******************************************************************************
+ *                                        HELPER METHODS
+ ******************************************************************************/
 
-fn normalized_copy(s: &[u8; 64]) -> [u8;64] {
-
-    let mut cpy = [0u8; 64];
-    cpy.copy_from_slice(s);
-
-    for i in 0 .. cpy.len() {
-        cpy[i] = cpy[i].to_ascii_uppercase();
-    }
-
-    cpy
-
-}
-
-/*----------------------------------------------------------------------------*/
 
 fn _to_ascii_uppercase(byte : &u8) -> u8 {
 
@@ -205,20 +196,22 @@ fn _to_ascii_uppercase(byte : &u8) -> u8 {
 
 }
 
-
-impl<'a> IntoIterator for &'a  Label {
-
-    type Item = u8;
-
-    type IntoIter = Map<slice::Iter<'a, u8>, fn(&u8) -> u8>;
-
-    fn into_iter(self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
-
-        let len = self.len();
-        self.data[1 .. 1 + len].into_iter().map(_to_ascii_uppercase)
-
-    }
-
-}
-
+// /*----------------------------------------------------------------------------*/
+// 
+// Works, but is unused
+// impl<'a> IntoIterator for &'a  Label {
+// 
+//     type Item = u8;
+// 
+//     type IntoIter = Map<slice::Iter<'a, u8>, fn(&u8) -> u8>;
+// 
+//     fn into_iter(self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
+// 
+//         let len = self.len();
+//         self.data[1 .. 1 + len].into_iter().map(_to_ascii_uppercase)
+// 
+//     }
+// 
+// }
+// 
 /*----------------------------------------------------------------------------*/
