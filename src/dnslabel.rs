@@ -27,11 +27,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 use ::std::str::FromStr;
-// use ::std::string::ToString;
 use ::std::fmt;
 use ::std::cmp;
 use dnstraits::{AsBytes, DnsEntity};
 use ::std::hash::{Hash, Hasher};
+use ::std::iter::{Map, IntoIterator};
+use ::std::slice;
 
 /*----------------------------------------------------------------------------*/
 
@@ -195,3 +196,29 @@ fn normalized_copy(s: &[u8; 64]) -> [u8;64] {
     cpy
 
 }
+
+/*----------------------------------------------------------------------------*/
+
+fn _to_ascii_uppercase(byte : &u8) -> u8 {
+
+    (*byte as char).to_ascii_uppercase() as u8
+
+}
+
+
+impl<'a> IntoIterator for &'a  Label {
+
+    type Item = u8;
+
+    type IntoIter = Map<slice::Iter<'a, u8>, fn(&u8) -> u8>;
+
+    fn into_iter(self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
+
+        let len = self.len();
+        self.data[1 .. 1 + len].into_iter().map(_to_ascii_uppercase)
+
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
