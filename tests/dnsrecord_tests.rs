@@ -40,10 +40,11 @@ use ::testhelpers::check_to_from_string;
 /*----------------------------------------------------------------------------*/
 
 #[test]
-fn record_from_string() {
+fn check_record_to_from_string() {
 
     assert!(check_to_from_string::<Record>("A 1.2.3.4", Ok("OK")));
     assert!(check_to_from_string::<Record>("PTR org.ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Record>("PTR", Err("Missing Name")));
 
 }
 

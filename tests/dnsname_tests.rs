@@ -164,6 +164,7 @@ fn check_name_partial_eq() {
 
 #[test]
 fn check_name_to_from_string() {
+
     assert!(check_to_from_string::<Name>("", Ok("OK")));
     assert!(check_to_from_string::<Name>("org", Ok("OK")));
     assert!(check_to_from_string::<Name>("org", Ok("OK")));

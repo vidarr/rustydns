@@ -29,7 +29,7 @@
 use ::std::str::FromStr;
 use ::std::cmp::PartialEq;
 use rustydns::{AsBytes, DnsEntity};
-use testhelpers::common::print_name_bytes;
+use testhelpers::common::{print_name_bytes, print_str_as_bytes};
 /*----------------------------------------------------------------------------*/
 
 pub fn check_from_bytes<T: AsBytes + FromStr + PartialEq<T>>
@@ -92,17 +92,20 @@ pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool 
 
 pub fn check_to_from_string<T>
 (s: &str, expected: Result<&'static str, &'static str>) -> bool
-    where T: FromStr + ToString {
+where T: FromStr + ToString {
+
+    print!("{}", s);
+    print_str_as_bytes(s);
 
     let object = T::from_str(s);
     match expected {
         Err(_) => {
-        println!("Could not parse");
-        object.is_err()
+            println!("Could not parse");
+            object.is_err()
         },
         Ok(_) => {
             let serialized = object.ok().unwrap().to_string();
-            println!("Got '{}'   '{}'", s, serialized);
+            print_str_as_bytes(&serialized);
             s.to_string().eq(&serialized)
         }
     }

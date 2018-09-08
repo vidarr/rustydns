@@ -38,6 +38,7 @@ use ::std::hash::{Hash, Hasher};
 #[derive(Copy, Clone)]
 pub struct Label {
     data : [u8; 64],
+    normalized : [u8; 64],
 }
 
 /*----------------------------------------------------------------------------*/
@@ -78,8 +79,11 @@ impl AsBytes for Label {
 
         v[.. len + 1].copy_from_slice(&bytes[.. len + 1]);
 
+        let normalized = normalized_copy(&v);
+
         Ok(Label {
             data: v,
+            normalized: normalized,
         })
 
     }
@@ -101,12 +105,14 @@ impl FromStr for Label {
             return Err("Label longer than 63 chars")
         }
 
-        let mut n :[u8; 64] = [0; 64];
-        n[0] = len as u8;
-        n[1 .. len + 1].clone_from_slice(string.as_bytes());
-        Ok( Label { data: n,})
-    }
+        let mut data :[u8; 64] = [0; 64];
+        data[0] = len as u8;
+        data[1 .. len + 1].clone_from_slice(string.as_bytes());
+        let normalized = normalized_copy(&data);
+        Ok( Label { data, normalized})
 
+
+    }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -119,7 +125,7 @@ impl fmt::Display for Label {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        for u in self.data.iter() {
+        for u in self.data[1..].iter() {
             let result = match u {
                 &0 => break,
                 &other => write!(f, "{}", other as char),
@@ -141,16 +147,10 @@ impl fmt::Display for Label {
 impl cmp::PartialEq for Label {
 
     fn eq(&self, other: &Label) -> bool {
+        let len = 1 + self.len();
 
-        // TODO: Something must be done here because currently:
-        // a == b -> hash(a) == hash(b) DOES NOT HOLD
-        self.data.iter().zip(other.data.iter()).all(
-            |(a,b)| {
-                let a_ascii = *a as char;
-                let b_ascii = *b as char;
-                a_ascii.to_ascii_uppercase().eq(
-                    &b_ascii.to_ascii_uppercase())
-            })
+        self.normalized[0 .. len].iter().zip(
+            other.normalized[0 .. len].iter()).all(|(a,b)| a == b)
 
     }
 
@@ -175,10 +175,23 @@ impl Hash for Label {
 
     fn hash<H: Hasher>(&self, state : &mut H) {
 
-        self.data.hash(state);
+        self.normalized.hash(state);
 
     }
 
 }
 
 /*----------------------------------------------------------------------------*/
+
+fn normalized_copy(s: &[u8; 64]) -> [u8;64] {
+
+    let mut cpy = [0u8; 64];
+    cpy.copy_from_slice(s);
+
+    for i in 0 .. cpy.len() {
+        cpy[i] = cpy[i].to_ascii_uppercase();
+    }
+
+    cpy
+
+}

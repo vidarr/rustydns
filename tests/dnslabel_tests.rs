@@ -29,6 +29,8 @@
 extern crate rustydns;
 mod testhelpers;
 
+use ::std::str::FromStr;
+
 use rustydns::Label;
 use testhelpers::{check_to_bytes, check_from_bytes, check_partial_eq, check_to_from_string};
 
@@ -64,6 +66,19 @@ fn test_label_from_bytes() {
 /*----------------------------------------------------------------------------*/
 
 #[test]
+fn check_label_to_from_string() {
+
+    assert!(check_to_from_string::<Label>("", Ok("OK")));
+    assert!(check_to_from_string::<Label>("org", Ok("OK")));
+    assert!(check_to_from_string::<Label>("TEST", Ok("OK")));
+    assert!(check_to_from_string::<Label>("ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Label>("Ubeer", Ok("OK")));
+    assert!(check_to_from_string::<Label>("aFGgG", Ok("OK")));
+}
+
+/*----------------------------------------------------------------------------*/
+
+#[test]
 fn check_label_partial_eq() {
 
     assert!(check_partial_eq::<Label>("", ""));
@@ -89,14 +104,30 @@ fn check_label_partial_eq() {
 
 /*----------------------------------------------------------------------------*/
 
-#[test]
-fn check_label_to_from_string() {
-    assert!(check_to_from_string::<Label>("", Ok("OK")));
-    assert!(check_to_from_string::<Label>("org", Ok("OK")));
-    assert!(check_to_from_string::<Label>("TEST", Ok("OK")));
-    assert!(check_to_from_string::<Label>("ubeer", Ok("OK")));
-    assert!(check_to_from_string::<Label>("Ubeer", Ok("OK")));
-    assert!(check_to_from_string::<Label>("aFGgG", Ok("OK")));
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
+fn hash_label(s: &str) ->u64 {
+
+    let mut hasher = DefaultHasher::new();
+    Label::from_str(s).ok().unwrap().hash(&mut hasher);
+    hasher.finish()
 }
 
-// TODO: Tests for PartialEq for Label, Name
+#[test]
+fn check_label_hash() {
+
+    assert!(hash_label("") == hash_label(""));
+    assert!(hash_label("1") == hash_label("1"));
+    assert!(hash_label("a") == hash_label("a"));
+    assert!(hash_label("aa") == hash_label("aa"));
+    assert!(hash_label("A") == hash_label("a"));
+    assert!(hash_label("dhgfe") == hash_label("dhgfe"));
+    assert!(hash_label("DHGFE") == hash_label("dhgfe"));
+    assert!(hash_label("dHGFE") == hash_label("dhgfe"));
+    assert!(hash_label("dhgfE") == hash_label("dhgfe"));
+    assert!(hash_label("dHGFe") == hash_label("Dhgfe"));
+
+}
+
+/*----------------------------------------------------------------------------*/
