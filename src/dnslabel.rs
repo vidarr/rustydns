@@ -31,7 +31,7 @@ use ::std::fmt;
 use ::std::cmp;
 use dnstraits::{AsBytes, DnsEntity};
 use ::std::hash::{Hash, Hasher};
-use ::std::iter::{Map, IntoIterator};
+use ::std::iter::{Map, IntoIterator, FromIterator};
 use ::std::slice;
 
 /*----------------------------------------------------------------------------*/
@@ -196,22 +196,76 @@ fn _to_ascii_uppercase(byte : &u8) -> u8 {
 
 }
 
-// /*----------------------------------------------------------------------------*/
-// 
-// Works, but is unused
+/*----------------------------------------------------------------------------*/
+
+fn _deref_u8(octet_ref: &u8) -> u8 {
+    *octet_ref
+}
+
+/*----------------------------------------------------------------------------*/
+
+/// Turn a label into a sequence of bytes
+/// TODO: Test
+impl<'a> IntoIterator for &'a  Label {
+
+    type Item = u8;
+
+    type IntoIter = Map<slice::Iter<'a, u8>, fn(&u8) -> u8>;
+
+    fn into_iter(self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
+
+        let len = self.len();
+        self.data[1 .. 1 + len].into_iter().map(_deref_u8)
+
+    }
+
+}
+
+
 // impl<'a> IntoIterator for &'a  Label {
 // 
 //     type Item = u8;
 // 
-//     type IntoIter = Map<slice::Iter<'a, u8>, fn(&u8) -> u8>;
+//     type IntoIter = slice::Iter<'a, u8>;
 // 
-//     fn into_iter(self) -> Map<slice::Iter<'a, u8>, fn(&u8) -> u8> {
+//     fn into_iter(self) -> slice::Iter<'a, u8> {
 // 
 //         let len = self.len();
-//         self.data[1 .. 1 + len].into_iter().map(_to_ascii_uppercase)
+//         self.data[1 .. 1 + len].into_iter()
 // 
 //     }
 // 
 // }
-// 
+
+/*----------------------------------------------------------------------------*/
+
+/// Create a Label from an octet stream
+// TODO: Test
+impl FromIterator<u8> for Label {
+
+    fn from_iter<I: IntoIterator<Item=u8>>(iter : I) -> Self {
+
+        let mut data = [0u8;64];
+
+        let mut iter = iter.into_iter();
+
+        match iter.next() {
+            Some(octet) => data[0] = octet,
+            _ => return Label { data }
+        };
+
+        for i in 1 .. data[0] {
+
+            match iter.next() {
+                Some(octet) => data[i as usize] = octet,
+                     _ => return Label { data : [0u8; 64] }
+            }
+        }
+
+        Label {data}
+
+    }
+
+}
+
 /*----------------------------------------------------------------------------*/
