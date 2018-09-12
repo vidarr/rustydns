@@ -28,6 +28,7 @@
 //
 use ::std::collections::HashMap;
 use ::std::fmt;
+use ::std::io::Write;
 use dnslabel::Label;
 use dnsname::Name;
 use dnsrecord::Record;
@@ -80,6 +81,12 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
+    pub fn write(&self, f: &mut fmt::Write) -> fmt::Result {
+        self.internal_fmt(f, &[])
+    }
+
+    /*-----------------------------------------------------------------------*/
+
     fn internal_lookup(&self, labels : &[Label]) -> Option<&Record> {
 
         match self.entries.get(&labels[0]){
@@ -120,15 +127,28 @@ impl<'a> Zone {
         Ok(())
     }
 
-   //  fn internal_fmt(&self, f: &mut fmt::Formatter, labels: &[Label]) -> fmt::Result {
+     /*-----------------------------------------------------------------------*/
 
-   //      let name = Name::
-   //      for (t, e) in &self.entries {
+    fn internal_fmt(&self, f: &mut fmt::Write, labels: &[Label]) -> fmt::Result {
 
+        for (t, e) in &self.entries {
 
-   //      }
+            match e  {
 
-   //  }
+                ZoneEntry::Zone(zone) => {
+                    let mut labels = labels.to_vec();
+                    labels.push(*t);
+                    zone.internal_fmt(f, &labels)?;
+                },
+                ZoneEntry::Record(record) => write!(f, "{} {}\n", Name::labels_to_string(labels), record)?
+
+            }
+
+        }
+
+        Ok(())
+
+    }
 
 }
 

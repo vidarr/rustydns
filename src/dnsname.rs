@@ -135,9 +135,7 @@ impl fmt::Display for Name {
 
         // This one is going to be really expensive, isn't it???
 
-        let data = &self.data;
-        let strings = data.iter().map(|x| x.to_string()).filter(|x| ! "".eq(x));
-        write!(f, "{}", strings.rev().collect::<Vec<String>>().join("."));
+        write!(f, "{}", Name::labels_to_string(&self.data));
         Ok(())
     }
 
@@ -176,6 +174,15 @@ impl Name {
     pub fn to_slice(&self) -> &[Label] {
 
         &self.data
+
+    }
+
+     /*-----------------------------------------------------------------------*/
+
+    pub fn labels_to_string(labels: &[Label]) -> String {
+
+        let strings = labels.iter().map(|x| x.to_string()).filter(|x| ! "".eq(x));
+        strings.rev().collect::<Vec<String>>().join(".")
 
     }
 
