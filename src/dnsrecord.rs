@@ -26,7 +26,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-use dnstraits::{AsBytes, DnsEntity};
+use dnstraits::{AsBytes};
 use ::std::str::FromStr;
 use ::std::net::Ipv4Addr;
 use dnsname::Name;
@@ -35,21 +35,6 @@ use ::std::fmt;
 /******************************************************************************
  *                                             TYPE
  ******************************************************************************/
-
-pub enum ResourceType {
-
-    A = 1,
-    NS = 2,
-    CNAME = 5,
-    PTR = 12,
-    HINFO = 13,
-    MX = 15,
-    AXFR = 252,
-    ANY = 255
-
-}
-
-/*----------------------------------------------------------------------------*/
 
 /// Representation of a DNS Resource Record
 pub enum Record {

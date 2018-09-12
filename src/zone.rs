@@ -27,6 +27,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 use ::std::collections::HashMap;
+use ::std::fmt;
 use dnslabel::Label;
 use dnsname::Name;
 use dnsrecord::Record;
@@ -56,7 +57,7 @@ impl<'a> Zone {
 
     pub fn new() -> Zone {
 
-        Zone { entries : HashMap::new() }
+        Zone { entries : HashMap::new(),}
 
     }
 
@@ -65,7 +66,7 @@ impl<'a> Zone {
     /// Tries to find a record for name within the zone.
     pub fn lookup(&'a self, name : &Name) -> Option<&Record> {
 
-        self._lookup(name.to_slice())
+        self.internal_lookup(name.to_slice())
 
     }
 
@@ -73,18 +74,18 @@ impl<'a> Zone {
 
     pub fn add(&mut self, name : Name, record : Record) -> Result<(), &'static str> {
 
-        self._add(name.to_slice(), record)
+        self.internal_add(name.to_slice(), record)
 
     }
 
     /*-----------------------------------------------------------------------*/
 
-    fn _lookup(&self, labels : &[Label]) -> Option<&Record> {
+    fn internal_lookup(&self, labels : &[Label]) -> Option<&Record> {
 
         match self.entries.get(&labels[0]){
 
             Some(ZoneEntry::Zone(zone)) => {
-                zone._lookup(&labels[1..])
+                zone.internal_lookup(&labels[1..])
             },
             Some(ZoneEntry::Record(record)) => Some(record),
             None => None
@@ -95,7 +96,7 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
-    fn _add(&mut self, labels: &[Label], record : Record) -> Result<(), &'static str> {
+    fn internal_add(&mut self, labels: &[Label], record : Record) -> Result<(), &'static str> {
 
         if labels.len() == 1 {
 
@@ -106,7 +107,7 @@ impl<'a> Zone {
 
             match self.entries.get_mut(&labels[0]) {
 
-                Some(ZoneEntry::Zone(ref mut zone)) => return zone._add(&labels[1..], record),
+                Some(ZoneEntry::Zone(ref mut zone)) => return zone.internal_add(&labels[1..], record),
                 Some(ZoneEntry::Record(_)) => return Err("Record exists already"),
                 None => {},
             };
@@ -114,12 +115,58 @@ impl<'a> Zone {
         }
 
         let mut zone = Zone::new();
-        zone._add(&labels[1..], record)?;
+        zone.internal_add(&labels[1..], record)?;
         self.entries.insert(labels[0].clone(), ZoneEntry::Zone(zone));
         Ok(())
     }
 
+   //  fn internal_fmt(&self, f: &mut fmt::Formatter, labels: &[Label]) -> fmt::Result {
+
+   //      let name = Name::
+   //      for (t, e) in &self.entries {
+
+
+   //      }
+
+   //  }
 
 }
 
 /*-----------------------------------------------------------------------*/
+
+impl fmt::Display for ZoneEntry {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        match self {
+            ZoneEntry::Record(record) => write!(f, "{}", record),
+            ZoneEntry::Zone(zone) => write!(f, "{}", zone)
+        }
+
+    }
+
+}
+
+/*-----------------------------------------------------------------------*/
+
+impl fmt::Display for Zone {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        write!(f, "[");
+
+        for (name, record) in &self.entries {
+
+            write!(f, "{} {};", name, record);
+
+        }
+
+        write!(f, "]");
+
+        Ok(())
+
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/

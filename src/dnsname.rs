@@ -45,55 +45,6 @@ pub struct Name {
 
 /*----------------------------------------------------------------------------*/
 
-pub enum QuestionType {
-
-    A = 1,
-    NS = 2,
-    CNAME = 5,
-    PTR = 12,
-    HINFO = 13,
-    MX = 15,
-    AXFR = 252,
-    ANY = 255
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-/// Representation of a DNS question
-pub struct Question {
-
-    name : Name,
-    qtype : QuestionType,
-    qclass : u16
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-/// Representation of a DNS Resource Record
-pub struct ResourceRecord {
-
-    name : Name,
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-/// In-memory representation of a DNS message
-pub struct DnsMessage {
-
-    id : u16,
-    flags: u16,
-    questions : Vec<Question>,
-    answers : Vec<ResourceRecord>,
-    authorities : Vec<ResourceRecord>,
-    additionals : Vec<ResourceRecord>
-
-}
-
-/*----------------------------------------------------------------------------*/
-
 impl FromStr for Name {
 
     type Err = &'static str;
@@ -229,4 +180,5 @@ impl Name {
     }
 
 }
+
 /*----------------------------------------------------------------------------*/
