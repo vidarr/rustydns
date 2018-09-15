@@ -37,6 +37,8 @@ use ::std::fmt;
  ******************************************************************************/
 
 /// Representation of a DNS Resource Record
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub enum Record {
 
     A(Ipv4Addr),
@@ -139,4 +141,18 @@ impl fmt::Display for Record {
     }
 
 }
+
+/*----------------------------------------------------------------------------*/
+
+// impl cmp::PartialEq for Record {
+// 
+//     fn eq(&self, other: &Record) -> bool {
+// 
+//         self.data.iter().zip(other.data.iter()).all(
+//             |(a,b)| a.eq(b))
+// 
+//     }
+// 
+// }
+
 /*----------------------------------------------------------------------------*/

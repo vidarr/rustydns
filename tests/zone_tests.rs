@@ -40,37 +40,85 @@ use ::std::str::FromStr;
 use rustydns::{Name,Record,Zone};
 /*----------------------------------------------------------------------------*/
 
-fn insert(zone: &mut Zone, name: &str, record: &str) -> Result<(), &'static str> {
+fn check_zone_add(zone: &mut Zone, name_str: &str, record_str: &str) -> bool {
 
-        let n = Name::from_str(name)?;
-        let r = Record::from_str(record)?;
+    let name = match Name::from_str(name_str) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
 
-        zone.add(n, r)?;
+    let record = match Record::from_str(record_str) {
+        Ok(r) => r,
+        Err(_) => return false,
+    };
 
-        Result::Ok(())
+    if zone.add(name, record).is_err() {
+        return false;
+    }
+
+    let name = match Name::from_str(name_str) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+
+    let record = match Record::from_str(record_str) {
+        Ok(r) => r,
+        Err(_) => return false,
+    };
+
+    Option::Some(&record).eq(&zone.lookup(&name))
 
 }
 
 /*----------------------------------------------------------------------------*/
 
 #[test]
-fn check_zone_add_record() {
+fn test_zone_add_record() {
 
     let mut z = Zone::new();
-    let name = Name::from_str("ubeer.org").unwrap();
-    let record = Record::from_str("A 1.2.3.4").unwrap();
 
-    z.add(name, record);
+    assert!(check_zone_add(&mut z, "ubeer.org", "A 1.2.3.4"));
+    assert!(! check_zone_add(&mut z, "ubeer.org", "A 1.2.3.4"));
+    check_zone_add(&mut z, "org", "A 5.6.7.8");
+    check_zone_add(&mut z, "ubeer", "A 9.8.7.6");
 
-    insert(&mut z, "www.ubeer.org", "A 8.8.8.8");
+    let mut zone_string = String::new();
+    z.write(&mut zone_string).expect("Could not format zone");
 
-    println!("{}", z);
+    println!("{}\n",  zone_string);
+
 
 }
 
 /*----------------------------------------------------------------------------*/
 
-fn main() {
+#[test]
+fn test_zone_add_from_str() {
 
-    check_zone_add_record();
+    let mut zone = Zone::new();
+    let name = Name::from_str("ubeer.org").unwrap();
+    let record = Record::from_str("A 1.2.3.4").unwrap();
+
+    let entry_string = format!("{} {}", name.to_string() , record.to_string());
+
+    assert!(zone.add_from_str(&entry_string).is_ok());
+    assert_eq!(zone.lookup(&name), Option::Some(&record));
+
+    assert_eq!(zone.lookup(&Name::from_str("Not_In_Zone").unwrap()), Option::None);
+
+    let name = Name::from_str("org").unwrap();
+    let record = Record::from_str("PTR ubeer.org").unwrap();
+
+    let entry_string = format!("{} {}", name.to_string(), record.to_string());
+
+    // Should not be possible since 'org' is already a sub-zone
+    assert!(zone.add_from_str(&entry_string).is_err());
+
 }
+
+/*----------------------------------------------------------------------------*/
+
+// fn main() {
+// 
+//     check_zone_add_record();
+// }

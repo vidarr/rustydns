@@ -28,10 +28,10 @@
 //
 use ::std::collections::HashMap;
 use ::std::fmt;
-use ::std::io::Write;
 use dnslabel::Label;
 use dnsname::Name;
 use dnsrecord::Record;
+use std::str::FromStr;
 
 /******************************************************************************
  *                                             TYPE
@@ -75,7 +75,14 @@ impl<'a> Zone {
 
     pub fn add(&mut self, name : Name, record : Record) -> Result<(), &'static str> {
 
-        self.internal_add(name.to_slice(), record)
+        // Get rid of terminal empty label
+        let labels = name.to_slice();
+        let len = labels.len();
+        if 1 > len {
+            return Err("Require NAME");
+        }
+
+        self.internal_add(&labels[0 .. len - 1], record)
 
     }
 
@@ -83,6 +90,23 @@ impl<'a> Zone {
 
     pub fn write(&self, f: &mut fmt::Write) -> fmt::Result {
         self.internal_fmt(f, &[])
+    }
+
+    /*------------------------------------------------------------------------*/
+
+    pub fn add_from_str(&mut self, s: &str) -> Result<(), &'static str> {
+
+        // First version: use iterators:
+        //  Guess its rather imperformant, but the simplest solution iI could come
+        //  up with right now ...
+        let mut parts = s.split_whitespace();
+        let name_str = parts.next().ok_or("DNS name missing")?;
+        let record_string = parts.collect::<Vec<_>>().join(" ");
+        let name = Name::from_str(&name_str)?;
+        let record = Record::from_str(&record_string)?;
+
+        self.add(name, record)
+
     }
 
     /*-----------------------------------------------------------------------*/
@@ -105,29 +129,35 @@ impl<'a> Zone {
 
     fn internal_add(&mut self, labels: &[Label], record : Record) -> Result<(), &'static str> {
 
-        if labels.len() == 1 {
+        match labels.len() {
 
-            self.entries.insert(labels[0].clone(), ZoneEntry::Record(record));
-            return Ok(());
+            0 => Err("Require name"),
+            1 => {
+                if self.entries.contains_key(&labels[0]) {
+                    return Err("Entry already there")
+                }
+                self.entries.insert(labels[0].clone(), ZoneEntry::Record(record));
+                Ok(())
+            },
+            _ => {
 
-        } else {
+                match self.entries.get_mut(&labels[0]) {
 
-            match self.entries.get_mut(&labels[0]) {
-
-                Some(ZoneEntry::Zone(ref mut zone)) => return zone.internal_add(&labels[1..], record),
-                Some(ZoneEntry::Record(_)) => return Err("Record exists already"),
-                None => {},
-            };
+                    Some(ZoneEntry::Zone(ref mut zone)) => return zone.internal_add(&labels[1..], record),
+                    Some(ZoneEntry::Record(_)) => return Err("Record exists already"),
+                    None => {},
+                };
+                let mut zone = Zone::new();
+                zone.internal_add(&labels[1..], record)?;
+                self.entries.insert(labels[0].clone(), ZoneEntry::Zone(zone));
+                Ok(())
+            }
 
         }
 
-        let mut zone = Zone::new();
-        zone.internal_add(&labels[1..], record)?;
-        self.entries.insert(labels[0].clone(), ZoneEntry::Zone(zone));
-        Ok(())
     }
 
-     /*-----------------------------------------------------------------------*/
+    /*-----------------------------------------------------------------------*/
 
     fn internal_fmt(&self, f: &mut fmt::Write, labels: &[Label]) -> fmt::Result {
 

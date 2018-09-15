@@ -38,6 +38,7 @@ use dnslabel::Label;
  *                                             TYPE
  ******************************************************************************/
 
+#[derive(Debug)]
 pub struct Name {
     /* Last Label MUST always be empty ! */
     data : Vec<Label>,

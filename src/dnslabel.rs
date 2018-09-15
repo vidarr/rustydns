@@ -138,6 +138,18 @@ impl fmt::Display for Label {
 
 /*----------------------------------------------------------------------------*/
 
+impl fmt::Debug for Label {
+
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Just an alias for Display ...
+        write!(f, "{}", self)
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
 impl cmp::PartialEq for Label {
 
     fn eq(&self, other: &Label) -> bool {
@@ -156,6 +168,7 @@ impl cmp::PartialEq for Label {
 /*----------------------------------------------------------------------------*/
 
 impl cmp::Eq for Label {}
+
 /*----------------------------------------------------------------------------*/
 
 impl Label {

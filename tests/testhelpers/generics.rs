@@ -94,7 +94,7 @@ pub fn check_to_from_string<T>
 (s: &str, expected: Result<&'static str, &'static str>) -> bool
 where T: FromStr + ToString {
 
-    print!("{}", s);
+    print!("{} ", s);
     print_str_as_bytes(s);
 
     let object = T::from_str(s);

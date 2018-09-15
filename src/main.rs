@@ -31,50 +31,51 @@
  * GENCE  OR  OTHERWISE)  ARISING  IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-extern crate rustydns;
-
-use ::std::str::FromStr;
-use rustydns::{Name,Record,Zone};
-use ::std::io::Write;
-
-/*----------------------------------------------------------------------------*/
-
-fn insert(zone: &mut Zone, name: &str, record: &str) -> Result<(), &'static str> {
-
-        let n = Name::from_str(name)?;
-        let r = Record::from_str(record)?;
-
-        zone.add(n, r)?;
-
-        Result::Ok(())
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-fn check_zone_add_record() {
-
-    let mut z = Zone::new();
-    let name = Name::from_str("ubeer.org").unwrap();
-    let record = Record::from_str("A 1.2.3.4").unwrap();
-
-    z.add(name, record);
-
-    insert(&mut z, "www.ubeer.org", "A 8.8.8.8");
-    insert(&mut z, "mail.ubeer.org", "PTR ubeer.org");
-
-    println!("{}", z);
-
-    let mut s = String::new();
-    z.write(&mut s);
-    println!("{}", s);
-
-}
+// extern crate rustydns;
+// 
+// use ::std::str::FromStr;
+// use rustydns::{Name,Record,Zone};
+// use ::std::io::Write;
+// 
+// /*----------------------------------------------------------------------------*/
+// 
+// fn insert(zone: &mut Zone, name: &str, record: &str) -> Result<(), &'static str> {
+// 
+//         let n = Name::from_str(name)?;
+//         let r = Record::from_str(record)?;
+// 
+//         zone.add(n, r)?;
+// 
+//         Result::Ok(())
+// 
+// }
+// 
+// /*----------------------------------------------------------------------------*/
+// 
+// fn check_zone_add_record() {
+// 
+//     let mut z = Zone::new();
+//     let name = Name::from_str("ubeer.org").unwrap();
+//     let record = Record::from_str("A 1.2.3.4").unwrap();
+// 
+//     z.add(name, record);
+// 
+//     insert(&mut z, "www.ubeer.org", "A 8.8.8.8");
+//     insert(&mut z, "mail.ubeer.org", "PTR ubeer.org");
+// 
+//     println!("{}", z);
+// 
+//     let mut s = String::new();
+//     z.write(&mut s);
+//     println!("{}", s);
+// 
+// }
 
 /*----------------------------------------------------------------------------*/
 
 fn main() {
 
-    check_zone_add_record();
+//     check_zone_add_record();
 }
 
+/*----------------------------------------------------------------------------*/
