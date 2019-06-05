@@ -33,8 +33,13 @@
  */
 extern crate mio;
 
-use mio::Poll;
+use mio::{Poll, Ready, Token, PollOpt, Events};
 use mio::net::UdpSocket;
+use std::time::Duration;
+
+/*----------------------------------------------------------------------------*/
+
+const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
 
 /*----------------------------------------------------------------------------*/
 
@@ -56,27 +61,60 @@ fn bind_to_udp(listen_addr_str : &str) -> Result<UdpSocket, &'static str> {
 
 /*----------------------------------------------------------------------------*/
 
-fn setup_poll(listen_socket : &UdpSocket, handler : ()) -> Result<Poll, &'static str> {
+fn setup_poll(listen_socket : &UdpSocket, token : Token) -> Result<Poll, &'static str> {
 
     let poll = match Poll::new() {
         Ok(p) => p,
         Err(_) => return Err("could not create mio:Poll")
     };
 
-    // poll.register(listen_socket)
+    if poll.register(listen_socket, token, Ready::readable(), PollOpt::edge()).is_err() {
+        return Err("could not register listening socket");
+    };
+
     Ok(poll)
 
+}
+/*----------------------------------------------------------------------------*/
+
+fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket) {
+
+    let mut events = Events::with_capacity(1024);
+    let timeout = Duration::from_millis(500);
+
+    let mut buffer = [0; MAX_SAFE_UDP_PAYLOAD_LEN];
+
+    loop {
+
+        let result = poll.poll(&mut events, Some(timeout));
+
+        if result.is_err() {
+            println!("Exception occured during polling");
+            continue;
+        };
+
+        for event in &events {
+            if listen_token == event.token() {
+
+                println!("Incoming data:");
+                listen_socket.recv_from(&mut buffer).expect("Did not receive data");
+                let data_str = match std::str::from_utf8(&buffer) {
+                    Err(_) => "Could not decode data",
+                    Ok(s) => s,
+                };
+
+                println!("{}", data_str);
+
+            }
+        }
+
+    }
 }
 
 /*----------------------------------------------------------------------------*/
 
 fn main() {
 
-    // Read configuration
-    //
-    // Initialize DNS db
-    //
-    //
     let listen_addr_str = "127.0.0.1:1104";
 
     let listen_socket = match bind_to_udp(listen_addr_str) {
@@ -91,13 +129,17 @@ fn main() {
 
     println!("Bound to {}", listen_addr_str);
 
-    let poll = match setup_poll(&listen_socket, ()) {
+    let listen_token = Token(0);
+
+    let poll = match setup_poll(&listen_socket, listen_token) {
         Ok(p) => p,
         Err(msg) => {
             println!("{}", msg);
             return;
         }
     };
+
+    run_poll(poll, listen_token, listen_socket);
 
 }
 
