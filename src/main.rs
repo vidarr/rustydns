@@ -77,12 +77,10 @@ fn setup_poll(listen_socket : &UdpSocket, token : Token) -> Result<Poll, &'stati
 }
 /*----------------------------------------------------------------------------*/
 
-fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket) {
+fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket, handle : fn([u8;512])) {
 
     let mut events = Events::with_capacity(1024);
     let timeout = Duration::from_millis(500);
-
-    let mut buffer = [0; MAX_SAFE_UDP_PAYLOAD_LEN];
 
     loop {
 
@@ -96,19 +94,32 @@ fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket) {
         for event in &events {
             if listen_token == event.token() {
 
-                println!("Incoming data:");
-                listen_socket.recv_from(&mut buffer).expect("Did not receive data");
-                let data_str = match std::str::from_utf8(&buffer) {
-                    Err(_) => "Could not decode data",
-                    Ok(s) => s,
-                };
+                let mut buffer = [0; MAX_SAFE_UDP_PAYLOAD_LEN];
 
-                println!("{}", data_str);
+                println!("Incoming data:");
+                match listen_socket.recv_from(&mut buffer) {
+                    Ok(_) => handle(buffer),
+                    Err(_) => println!("Did not receive data"),
+
+                };
 
             }
         }
 
     }
+}
+
+/*----------------------------------------------------------------------------*/
+
+fn dummy_handler(buffer : [u8;512]) {
+
+    let data_str = match std::str::from_utf8(&buffer) {
+        Err(_) => "Could not decode data",
+        Ok(s) => s,
+    };
+
+    println!("{}", data_str);
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -139,7 +150,7 @@ fn main() {
         }
     };
 
-    run_poll(poll, listen_token, listen_socket);
+    run_poll(poll, listen_token, listen_socket, dummy_handler);
 
 }
 
