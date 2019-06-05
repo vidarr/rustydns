@@ -31,51 +31,74 @@
  * GENCE  OR  OTHERWISE)  ARISING  IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-// extern crate rustydns;
-// 
-// use ::std::str::FromStr;
-// use rustydns::{Name,Record,Zone};
-// use ::std::io::Write;
-// 
-// /*----------------------------------------------------------------------------*/
-// 
-// fn insert(zone: &mut Zone, name: &str, record: &str) -> Result<(), &'static str> {
-// 
-//         let n = Name::from_str(name)?;
-//         let r = Record::from_str(record)?;
-// 
-//         zone.add(n, r)?;
-// 
-//         Result::Ok(())
-// 
-// }
-// 
-// /*----------------------------------------------------------------------------*/
-// 
-// fn check_zone_add_record() {
-// 
-//     let mut z = Zone::new();
-//     let name = Name::from_str("ubeer.org").unwrap();
-//     let record = Record::from_str("A 1.2.3.4").unwrap();
-// 
-//     z.add(name, record);
-// 
-//     insert(&mut z, "www.ubeer.org", "A 8.8.8.8");
-//     insert(&mut z, "mail.ubeer.org", "PTR ubeer.org");
-// 
-//     println!("{}", z);
-// 
-//     let mut s = String::new();
-//     z.write(&mut s);
-//     println!("{}", s);
-// 
-// }
+extern crate mio;
+
+use mio::Poll;
+use mio::net::UdpSocket;
+
+/*----------------------------------------------------------------------------*/
+
+fn bind_to_udp(listen_addr_str : &str) -> Result<UdpSocket, &'static str> {
+
+    let listen_addr : std::net::SocketAddr = match listen_addr_str.parse() {
+
+        Ok(addr) => addr,
+        Err(_) => return Err("Could not parse address string")
+
+    };
+
+    match UdpSocket::bind(&listen_addr) {
+        Ok(s) => Ok(s),
+        Err(_) => Err("Could not bind to socket")
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+fn setup_poll(listen_socket : &UdpSocket, handler : ()) -> Result<Poll, &'static str> {
+
+    let poll = match Poll::new() {
+        Ok(p) => p,
+        Err(_) => return Err("could not create mio:Poll")
+    };
+
+    // poll.register(listen_socket)
+    Ok(poll)
+
+}
 
 /*----------------------------------------------------------------------------*/
 
 fn main() {
 
-//     check_zone_add_record();
+    // Read configuration
+    //
+    // Initialize DNS db
+    //
+    //
+    let listen_addr_str = "127.0.0.1:1104";
+
+    let listen_socket = match bind_to_udp(listen_addr_str) {
+
+        Ok(sock) => sock,
+        Err(msg) => {
+            println!("{}", msg);
+            return;
+        }
+
+    };
+
+    println!("Bound to {}", listen_addr_str);
+
+    let poll = match setup_poll(&listen_socket, ()) {
+        Ok(p) => p,
+        Err(msg) => {
+            println!("{}", msg);
+            return;
+        }
+    };
+
 }
 
 /*----------------------------------------------------------------------------*/

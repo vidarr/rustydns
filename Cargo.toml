@@ -9,3 +9,5 @@ name = "rustydns"
 path = "src/libdns.rs"
 
 [dependencies]
+
+mio = ">= 0.6.19"
