@@ -118,7 +118,18 @@ fn test_zone_add_from_str() {
 
 /*----------------------------------------------------------------------------*/
 
-// fn main() {
-// 
-//     check_zone_add_record();
-// }
+#[test]
+fn test_zone_lookup() {
+
+    let mut zone = Zone::new();
+
+    assert!(zone.add_from_str("nordri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("sudri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("vidarr.landvidi.asgard.yggdrasil").is_ok());
+    assert!(zone.add_from_str("austri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("westri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("heimdall.bifroest.asgard.yggdrasil").is_ok());
+
+}
+
+/*----------------------------------------------------------------------------*/
