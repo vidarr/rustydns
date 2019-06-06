@@ -45,9 +45,12 @@ struct DummyHandler {
 
 /*----------------------------------------------------------------------------*/
 
+/**
+ * Simple echoing handler
+ */
 impl UdpHandler for DummyHandler {
 
-    fn handle (&self, addr : SocketAddr, bytes_used : usize, buffer : [u8; MAX_SAFE_UDP_PAYLOAD_LEN]) {
+    fn handle (&self, udp_server : &UdpServer, addr : SocketAddr, bytes_used : usize, buffer : [u8; MAX_SAFE_UDP_PAYLOAD_LEN]) {
         let data_str = match std::str::from_utf8(&buffer[..bytes_used]) {
             Err(_) => "Could not decode data",
             Ok(s) => s,
@@ -55,6 +58,7 @@ impl UdpHandler for DummyHandler {
 
         println!("{}", data_str);
 
+        udp_server.send(addr, bytes_used, buffer);
     }
 
 }
