@@ -34,7 +34,7 @@
 extern crate mio;
 
 mod udpserver;
-use self::udpserver::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, bind_to, UdpServer};
+use self::udpserver::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, UdpServer};
 use std::net::SocketAddr;
 
 /*----------------------------------------------------------------------------*/
@@ -65,19 +65,9 @@ fn main() {
 
     let listen_addr_str = "127.0.0.1:1104";
 
-    let listen_socket = match bind_to(listen_addr_str) {
+    let dummy_handler = DummyHandler{};
 
-        Ok(sock) => sock,
-        Err(msg) => {
-            println!("{}", msg);
-            return;
-        }
-
-    };
-
-    println!("Bound to {}", listen_addr_str);
-
-    let udp_server = match UdpServer::new(&listen_socket) {
+    let udp_server = match UdpServer::bind_to(listen_addr_str, &dummy_handler) {
         Ok(p) => p,
         Err(msg) => {
             println!("{}", msg);
@@ -85,7 +75,7 @@ fn main() {
         }
     };
 
-    udp_server.run(listen_socket, DummyHandler{});
+    udp_server.run();
 
 }
 
