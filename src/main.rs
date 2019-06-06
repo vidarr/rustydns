@@ -43,7 +43,12 @@ const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
 
 /*----------------------------------------------------------------------------*/
 
-fn bind_to_udp(listen_addr_str : &str) -> Result<UdpSocket, &'static str> {
+pub enum Socket {
+    Udp(UdpSocket),
+    Tcp,
+}
+
+fn bind_to(listen_addr_str : &str) -> Result<Socket, &'static str> {
 
     let listen_addr : std::net::SocketAddr = match listen_addr_str.parse() {
 
@@ -53,7 +58,7 @@ fn bind_to_udp(listen_addr_str : &str) -> Result<UdpSocket, &'static str> {
     };
 
     match UdpSocket::bind(&listen_addr) {
-        Ok(s) => Ok(s),
+        Ok(s) => Ok(Socket::Udp(s)),
         Err(_) => Err("Could not bind to socket")
     }
 
@@ -61,26 +66,49 @@ fn bind_to_udp(listen_addr_str : &str) -> Result<UdpSocket, &'static str> {
 
 /*----------------------------------------------------------------------------*/
 
-fn setup_poll(listen_socket : &UdpSocket, token : Token) -> Result<Poll, &'static str> {
+fn setup_poll(listen_socket : &Socket) -> Result<Poll, &'static str> {
 
     let poll = match Poll::new() {
         Ok(p) => p,
         Err(_) => return Err("could not create mio:Poll")
     };
 
-    if poll.register(listen_socket, token, Ready::readable(), PollOpt::edge()).is_err() {
+    let (token, ls) = match listen_socket {
+        Socket::Udp(s) => (Token(0), s),
+        Socket::Tcp => return Err("Unsupported socket type"),
+    };
+
+    if poll.register(ls, token, Ready::readable(), PollOpt::edge()).is_err() {
         return Err("could not register listening socket");
     };
 
     Ok(poll)
 
 }
+
 /*----------------------------------------------------------------------------*/
 
-fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket, handle : fn([u8;512])) {
+pub trait UdpHandler {
+
+    fn handle (&self, [u8;512]);
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+fn run_poll<UH : UdpHandler> (poll : Poll, listen_socket : Socket, handler : UH) {
 
     let mut events = Events::with_capacity(1024);
     let timeout = Duration::from_millis(500);
+
+    let ls = match listen_socket {
+        Socket::Udp(s) => s,
+        _ => {
+            println!("Unsupported socket type");
+            return;
+        }
+
+    };
 
     loop {
 
@@ -92,13 +120,14 @@ fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket, handle
         };
 
         for event in &events {
-            if listen_token == event.token() {
+            if Token(0) == event.token() {
 
                 let mut buffer = [0; MAX_SAFE_UDP_PAYLOAD_LEN];
 
                 println!("Incoming data:");
-                match listen_socket.recv_from(&mut buffer) {
-                    Ok(_) => handle(buffer),
+
+                match ls.recv_from(&mut buffer) {
+                    Ok(_) => handler.handle(buffer),
                     Err(_) => println!("Did not receive data"),
 
                 };
@@ -111,14 +140,23 @@ fn run_poll(poll : Poll, listen_token : Token, listen_socket : UdpSocket, handle
 
 /*----------------------------------------------------------------------------*/
 
-fn dummy_handler(buffer : [u8;512]) {
+struct DummyHandler {
 
-    let data_str = match std::str::from_utf8(&buffer) {
-        Err(_) => "Could not decode data",
-        Ok(s) => s,
-    };
+}
 
-    println!("{}", data_str);
+/*----------------------------------------------------------------------------*/
+
+impl UdpHandler for DummyHandler {
+    fn handle(&self, buffer : [u8;512]) {
+
+        let data_str = match std::str::from_utf8(&buffer) {
+            Err(_) => "Could not decode data",
+            Ok(s) => s,
+        };
+
+        println!("{}", data_str);
+
+    }
 
 }
 
@@ -128,7 +166,7 @@ fn main() {
 
     let listen_addr_str = "127.0.0.1:1104";
 
-    let listen_socket = match bind_to_udp(listen_addr_str) {
+    let listen_socket = match bind_to(listen_addr_str) {
 
         Ok(sock) => sock,
         Err(msg) => {
@@ -140,9 +178,7 @@ fn main() {
 
     println!("Bound to {}", listen_addr_str);
 
-    let listen_token = Token(0);
-
-    let poll = match setup_poll(&listen_socket, listen_token) {
+    let poll = match setup_poll(&listen_socket) {
         Ok(p) => p,
         Err(msg) => {
             println!("{}", msg);
@@ -150,7 +186,7 @@ fn main() {
         }
     };
 
-    run_poll(poll, listen_token, listen_socket, dummy_handler);
+    run_poll(poll, listen_socket, DummyHandler{});
 
 }
 
