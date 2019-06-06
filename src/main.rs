@@ -33,8 +33,8 @@
  */
 extern crate mio;
 
-mod netio;
-use self::netio::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, bind_to, setup_poll, run_poll};
+mod udpserver;
+use self::udpserver::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, bind_to, UdpServer};
 use std::net::SocketAddr;
 
 /*----------------------------------------------------------------------------*/
@@ -77,7 +77,7 @@ fn main() {
 
     println!("Bound to {}", listen_addr_str);
 
-    let poll = match setup_poll(&listen_socket) {
+    let udp_server = match UdpServer::new(&listen_socket) {
         Ok(p) => p,
         Err(msg) => {
             println!("{}", msg);
@@ -85,7 +85,7 @@ fn main() {
         }
     };
 
-    run_poll(poll, listen_socket, DummyHandler{});
+    udp_server.run(listen_socket, DummyHandler{});
 
 }
 
