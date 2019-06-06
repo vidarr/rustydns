@@ -33,110 +33,9 @@
  */
 extern crate mio;
 
-use mio::{Poll, Ready, Token, PollOpt, Events};
-use mio::net::UdpSocket;
-use std::time::Duration;
-
-/*----------------------------------------------------------------------------*/
-
-const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
-
-/*----------------------------------------------------------------------------*/
-
-pub enum Socket {
-    Udp(UdpSocket),
-    Tcp,
-}
-
-fn bind_to(listen_addr_str : &str) -> Result<Socket, &'static str> {
-
-    let listen_addr : std::net::SocketAddr = match listen_addr_str.parse() {
-
-        Ok(addr) => addr,
-        Err(_) => return Err("Could not parse address string")
-
-    };
-
-    match UdpSocket::bind(&listen_addr) {
-        Ok(s) => Ok(Socket::Udp(s)),
-        Err(_) => Err("Could not bind to socket")
-    }
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-fn setup_poll(listen_socket : &Socket) -> Result<Poll, &'static str> {
-
-    let poll = match Poll::new() {
-        Ok(p) => p,
-        Err(_) => return Err("could not create mio:Poll")
-    };
-
-    let (token, ls) = match listen_socket {
-        Socket::Udp(s) => (Token(0), s),
-        Socket::Tcp => return Err("Unsupported socket type"),
-    };
-
-    if poll.register(ls, token, Ready::readable(), PollOpt::edge()).is_err() {
-        return Err("could not register listening socket");
-    };
-
-    Ok(poll)
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-pub trait UdpHandler {
-
-    fn handle (&self, [u8;512]);
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-fn run_poll<UH : UdpHandler> (poll : Poll, listen_socket : Socket, handler : UH) {
-
-    let mut events = Events::with_capacity(1024);
-    let timeout = Duration::from_millis(500);
-
-    let ls = match listen_socket {
-        Socket::Udp(s) => s,
-        _ => {
-            println!("Unsupported socket type");
-            return;
-        }
-
-    };
-
-    loop {
-
-        let result = poll.poll(&mut events, Some(timeout));
-
-        if result.is_err() {
-            println!("Exception occured during polling");
-            continue;
-        };
-
-        for event in &events {
-            if Token(0) == event.token() {
-
-                let mut buffer = [0; MAX_SAFE_UDP_PAYLOAD_LEN];
-
-                println!("Incoming data:");
-
-                match ls.recv_from(&mut buffer) {
-                    Ok(_) => handler.handle(buffer),
-                    Err(_) => println!("Did not receive data"),
-
-                };
-
-            }
-        }
-
-    }
-}
+mod netio;
+use self::netio::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, bind_to, setup_poll, run_poll};
+use std::net::SocketAddr;
 
 /*----------------------------------------------------------------------------*/
 
@@ -147,9 +46,9 @@ struct DummyHandler {
 /*----------------------------------------------------------------------------*/
 
 impl UdpHandler for DummyHandler {
-    fn handle(&self, buffer : [u8;512]) {
 
-        let data_str = match std::str::from_utf8(&buffer) {
+    fn handle (&self, addr : SocketAddr, bytes_used : usize, buffer : [u8; MAX_SAFE_UDP_PAYLOAD_LEN]) {
+        let data_str = match std::str::from_utf8(&buffer[..bytes_used]) {
             Err(_) => "Could not decode data",
             Ok(s) => s,
         };
