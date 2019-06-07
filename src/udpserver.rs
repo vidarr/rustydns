@@ -38,7 +38,7 @@ use mio::net::UdpSocket;
 use std::time::Duration;
 use std::net::SocketAddr;
 use ::std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc,Mutex,Condvar};
 use std::thread::{spawn, JoinHandle};
 use ::std::cell::RefCell;
 
@@ -60,6 +60,39 @@ struct UdpMessage {
     buffer : [u8; 512],
 
 }
+
+/*----------------------------------------------------------------------------*/
+
+pub struct SyncQueue<T> {
+    queue : Mutex<VecDeque<T>>,
+    cond_var : Condvar,
+}
+
+impl<T> SyncQueue<T> {
+
+    fn new(capacity : usize) -> SyncQueue<T> {
+        SyncQueue {
+            queue : Mutex::new(VecDeque::with_capacity(capacity)),
+            cond_var : Condvar::new(),
+        }
+    }
+
+    pub fn enqueue(&self, msg : T) {
+        self.queue.lock().unwrap().push_front(msg);
+    }
+
+    pub fn dequeue(&self) -> T {
+        // TODO: Facilitate condvar instead busy waiting
+        loop {
+            match self.queue.lock().unwrap().pop_back() {
+                Some(msg) => return msg,
+                None => {},
+            }
+        }
+    }
+
+}
+
 /*----------------------------------------------------------------------------*/
 
 /* TODO:
@@ -73,8 +106,8 @@ pub struct UdpServer<'a> {
     listen_socket : UdpSocket,
     in_handler : &'a UdpHandler,
     out_queue : Mutex<VecDeque<UdpMessage>>,
-    in_queue : Mutex<VecDeque<UdpMessage>>,
     threads : RefCell<Vec<JoinHandle<()>>>,
+    in_queue : SyncQueue<UdpMessage>,
 
 }
 
@@ -109,7 +142,6 @@ impl<'a> UdpServer<'a> {
             };
 
             let out_queue = VecDeque::with_capacity(max_queue_len);
-            let in_queue = VecDeque::with_capacity(max_queue_len);
 
             // out_queue : RefCell::new(VecDeque::with_capacity(max_queue_len)),
 
@@ -117,8 +149,8 @@ impl<'a> UdpServer<'a> {
                 poll : poll,
                 listen_socket : listen_socket,
                 in_handler : handler,
+                in_queue : SyncQueue::new(max_queue_len),
                 out_queue : Mutex::new(out_queue),
-                in_queue : Mutex::new(in_queue),
                 threads : RefCell::new(Vec::new()),
 
             })
@@ -189,8 +221,7 @@ fn int_handle_read(udp_server : &UdpServer) {
 
     match udp_server.listen_socket.recv_from(&mut buffer) {
         Ok((num_bytes, addr)) => {
-            let mut in_queue = udp_server.in_queue.lock().unwrap();
-            in_queue.push_front(UdpMessage{addr, buffer, num_bytes});
+            udp_server.in_queue.enqueue(UdpMessage{addr, buffer, num_bytes});
         }
         //    udp_server.in_handler.handle(udp_server, soa, num_bytes, buffer),
         Err(_) => println!("Did not receive data"),
@@ -226,6 +257,8 @@ fn spawn_threads(udp_server : &UdpServer, num_threads : usize) {
     // in_queue : Mutex<VecDeque<UdpMessage>>,
 
     let handler = &udp_server.in_handler;
+    let in_queue = &udp_server.in_queue;
+
     for i in 1 .. num_threads {
 
         let thread = spawn(move || {
