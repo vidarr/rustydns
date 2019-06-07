@@ -59,14 +59,16 @@ impl<T> SyncQueue<T> {
 
     pub fn enqueue(&self, msg : T) {
         self.queue.lock().unwrap().push_front(msg);
+        self.cond_var.notify_one();
     }
 
     pub fn deque(&self) -> T {
-        // TODO: Facilitate condvar instead busy waiting
+        let mut guard = self.queue.lock().unwrap();
         loop {
-            match self.queue.lock().unwrap().pop_back() {
+            println!("Poll...");
+            match guard.pop_back() {
                 Some(msg) => return msg,
-                None => {},
+                None => guard = self.cond_var.wait(guard).unwrap(),
             }
         }
     }
