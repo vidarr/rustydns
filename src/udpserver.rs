@@ -37,133 +37,19 @@ use mio::{Poll, Ready, Token, PollOpt, Events};
 use mio::net::UdpSocket;
 use std::time::Duration;
 use std::net::SocketAddr;
-use ::std::collections::VecDeque;
-use std::sync::{Arc,Mutex,Condvar};
-use std::thread::{spawn, JoinHandle};
-use std::str::from_utf8;
-use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::sync::Mutex;
 
-/*----------------------------------------------------------------------------*/
+use udp::{MAX_SAFE_UDP_PAYLOAD_LEN, Handler, Message};
 
-pub const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
-
-/*----------------------------------------------------------------------------*/
-
-pub trait UdpHandler {
-
-    fn handle (&self, msg : UdpMessage);
-
-}
-
-pub struct UdpMessage {
-    pub addr : SocketAddr,
-    pub num_bytes : usize,
-    pub buffer : [u8; 512],
-
-}
-
-/*----------------------------------------------------------------------------*/
-// Threadpool
-/*----------------------------------------------------------------------------*/
-
-pub struct SyncQueue<T> {
-    queue : Mutex<VecDeque<T>>,
-    cond_var : Condvar,
-}
-
-impl<T> SyncQueue<T> {
-
-    fn new(capacity : usize) -> SyncQueue<T> {
-        SyncQueue {
-            queue : Mutex::new(VecDeque::with_capacity(capacity)),
-            cond_var : Condvar::new(),
-        }
-    }
-
-    pub fn enqueue(&self, msg : T) {
-        self.queue.lock().unwrap().push_front(msg);
-    }
-
-    pub fn deque(&self) -> T {
-        // TODO: Facilitate condvar instead busy waiting
-        loop {
-            match self.queue.lock().unwrap().pop_back() {
-                Some(msg) => return msg,
-                None => {},
-            }
-        }
-    }
-
-}
-
-/*----------------------------------------------------------------------------*/
-
-pub struct Threadpool<'a> {
-    in_handler : Arc<&'a UdpHandler>,
-    in_queue : Arc<SyncQueue<UdpMessage>>,
-    threads : RefCell<Vec<JoinHandle<()>>>,
-}
-
-/*----------------------------------------------------------------------------*/
-
-impl<'a> Threadpool<'a> {
-
-    pub fn new<UH : UdpHandler> (handler : &'a UH, max_queue_len : usize) -> Threadpool<'a> {
-
-        Threadpool {
-            in_handler : Arc::new(handler),
-            in_queue : Arc::new(SyncQueue::new(max_queue_len)),
-            threads : RefCell::new(Vec::new()),
-
-        }
-
-    }
-
-    pub fn run(&self, num_threads : usize) {
-
-        for i in 1 .. num_threads {
-
-            let in_queue = self.in_queue.clone();
-
-            let thread = spawn(move || {
-                loop {
-                    let msg = in_queue.deque();
-                    // Here: Call handler
-                    let data_str = match from_utf8(&msg.buffer[..msg.num_bytes]) {
-                        Err(_) => "Could not decode data",
-                        Ok(s) => s,
-                    };
-
-                    println!("thread {}: {}", i, data_str);
-                }
-            } );
-
-            self.threads.borrow_mut().push(thread);
-        }
-
-    }
-
-}
-
-impl <'a> UdpHandler for Threadpool<'a> {
-
-    fn handle (&self, msg : UdpMessage) {
-
-        self.in_queue.enqueue(msg);
-
-    }
-
-}
-
-/*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
 pub struct UdpServer<'a> {
 
     poll : Poll,
     listen_socket : UdpSocket,
-    out_queue : Mutex<VecDeque<UdpMessage>>,
-    handler : &'a UdpHandler,
+    out_queue : Mutex<VecDeque<Message>>,
+    handler : &'a Handler,
 
 }
 
@@ -171,7 +57,7 @@ pub struct UdpServer<'a> {
 
 impl<'a> UdpServer<'a> {
 
-    pub fn bind_to<UH : UdpHandler> (listen_addr_str : &str, handler : &'a UH)
+    pub fn bind_to<UH : Handler> (listen_addr_str : &str, handler : &'a UH)
         -> Result<UdpServer<'a>, &'static str> {
 
             let max_queue_len = 200;
@@ -253,7 +139,7 @@ impl<'a> UdpServer<'a> {
 
     pub fn send(&self, dest : SocketAddr, num_bytes : usize, buffer : [u8; 512]) {
 
-        self.out_queue.lock().unwrap().push_front(UdpMessage{
+        self.out_queue.lock().unwrap().push_front(Message{
             addr : dest,
             num_bytes : num_bytes,
             buffer : buffer,
@@ -273,7 +159,7 @@ fn int_handle_read(udp_server : &UdpServer) {
 
     match udp_server.listen_socket.recv_from(&mut buffer) {
         Ok((num_bytes, addr)) => {
-            udp_server.handler.handle(UdpMessage{addr, buffer, num_bytes});
+            udp_server.handler.handle(Message{addr, buffer, num_bytes});
         }
         //    udp_server.handler.handle(udp_server, soa, num_bytes, buffer),
         Err(_) => println!("Did not receive data"),

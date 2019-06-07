@@ -31,9 +31,11 @@ pub use dnsname::Name;
 pub use dnslabel::Label;
 pub use zone::Zone;
 pub use dnsrecord::Record;
+pub use udp::{Handler, Message};
 mod dnstraits;
 mod dnslabel;
 mod dnsname;
 mod dnsrecord;
 mod zone;
+mod udp;
 /*----------------------------------------------------------------------------*/

@@ -1,5 +1,5 @@
 /*
- * (C) 2018 Michael J. Beer
+ * (C) 2019 Michael J. Beer
  * All rights reserved.
  *
  * Redistribution  and use in source and binary forms, with or with‐
@@ -31,62 +31,26 @@
  * GENCE  OR  OTHERWISE)  ARISING  IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-extern crate mio;
-
-mod udp;
-mod threadpool;
-mod udpserver;
-use self::udp::{Message, Handler};
-use self::udpserver::UdpServer;
-use self::threadpool::Threadpool;
+use std::net::SocketAddr;
 
 /*----------------------------------------------------------------------------*/
 
-struct DummyHandler {
+pub const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
+
+/*----------------------------------------------------------------------------*/
+
+pub trait Handler {
+
+    fn handle (&self, msg : Message);
 
 }
 
 /*----------------------------------------------------------------------------*/
 
-/**
- * Simple echoing handler
- */
-impl Handler for DummyHandler {
-
-    fn handle (&self, msg : Message) {
-
-        let actually_used = &msg.buffer[.. msg.num_bytes];
-        let data_str = match std::str::from_utf8(actually_used) {
-            Err(_) => "Could not decode data",
-            Ok(s) => s,
-        };
-
-        println!("{}", data_str);
-
-    }
+pub struct Message {
+    pub addr : SocketAddr,
+    pub num_bytes : usize,
+    pub buffer : [u8; MAX_SAFE_UDP_PAYLOAD_LEN],
 
 }
 
-/*----------------------------------------------------------------------------*/
-
-fn main() {
-
-    let listen_addr_str = "127.0.0.1:1104";
-
-    let threadpool = Threadpool::new(&DummyHandler{}, 100);
-
-    threadpool.run(4);
-
-    let udp_server = match UdpServer::bind_to(listen_addr_str, &threadpool) {
-        Ok(p) => p,
-        Err(msg) => {
-            println!("{}", msg);
-            return;
-        }
-    };
-
-    udp_server.run();
-
-}
-
-/*----------------------------------------------------------------------------*/
