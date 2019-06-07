@@ -34,8 +34,8 @@
 extern crate mio;
 
 mod udpserver;
-use self::udpserver::{MAX_SAFE_UDP_PAYLOAD_LEN, UdpHandler, UdpServer};
-use std::net::SocketAddr;
+use self::udpserver::{UdpMessage, UdpHandler, UdpServer};
+use self::udpserver::Threadpool;
 
 /*----------------------------------------------------------------------------*/
 
@@ -50,15 +50,16 @@ struct DummyHandler {
  */
 impl UdpHandler for DummyHandler {
 
-    fn handle (&self, udp_server : &UdpServer, addr : SocketAddr, bytes_used : usize, buffer : [u8; MAX_SAFE_UDP_PAYLOAD_LEN]) {
-        let data_str = match std::str::from_utf8(&buffer[..bytes_used]) {
+    fn handle (&self, msg : UdpMessage) {
+
+        let actually_used = &msg.buffer[.. msg.num_bytes];
+        let data_str = match std::str::from_utf8(actually_used) {
             Err(_) => "Could not decode data",
             Ok(s) => s,
         };
 
         println!("{}", data_str);
 
-        udp_server.send(addr, bytes_used, buffer);
     }
 
 }
@@ -69,9 +70,11 @@ fn main() {
 
     let listen_addr_str = "127.0.0.1:1104";
 
-    let dummy_handler = DummyHandler{};
+    let threadpool = Threadpool::new(&DummyHandler{}, 100);
 
-    let udp_server = match UdpServer::bind_to(listen_addr_str, &dummy_handler) {
+    threadpool.run(4);
+
+    let udp_server = match UdpServer::bind_to(listen_addr_str, &threadpool) {
         Ok(p) => p,
         Err(msg) => {
             println!("{}", msg);
@@ -79,7 +82,7 @@ fn main() {
         }
     };
 
-    udp_server.run(4);
+    udp_server.run();
 
 }
 
