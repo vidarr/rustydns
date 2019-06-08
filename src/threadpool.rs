@@ -34,9 +34,10 @@
 use std::cell::RefCell;
 use std::thread::{spawn, JoinHandle};
 use std::sync::{Arc,Mutex,Condvar};
+use std::sync::atomic::{Ordering, AtomicBool};
 use std::collections::VecDeque;
 
-use udp::{Handler, Message};
+use udp::{ContinueState, Handler, Message};
 
 
 /*----------------------------------------------------------------------------*/
@@ -77,8 +78,9 @@ impl<T> SyncQueue<T> {
 
 /*----------------------------------------------------------------------------*/
 
-pub struct Threadpool<H: 'static + Handler + Send + Sync> {
-    handler : Arc<&'static H>,
+pub struct Threadpool<H: Handler + Send + Sync> {
+    stop : Arc<AtomicBool>,
+    handler : Arc<H>,
     in_queue : Arc<SyncQueue<Message>>,
     threads : RefCell<Vec<JoinHandle<()>>>,
 }
@@ -88,11 +90,12 @@ pub struct Threadpool<H: 'static + Handler + Send + Sync> {
 impl<H> Threadpool<H>
 where H: 'static + Handler + Send + Sync {
 
-    pub fn new(handler : &'static H, max_queue_len : usize)
+    pub fn new(handler : Arc<H>, max_queue_len : usize)
         -> Threadpool<H> {
 
             Threadpool {
-                handler : Arc::new(handler),
+                stop : Arc::new(AtomicBool::new(false)),
+                handler : handler,
                 in_queue : Arc::new(SyncQueue::new(max_queue_len)),
                 threads : RefCell::new(Vec::new()),
 
@@ -106,17 +109,36 @@ where H: 'static + Handler + Send + Sync {
 
             let in_queue = self.in_queue.clone();
             let handler = self.handler.clone();
+            let stop = self.stop.clone();
 
             let thread = spawn(move || {
                 loop {
                     let msg = in_queue.deque();
 
                     println!("thread {}", i);
-                    handler.handle(msg);
+                    match handler.handle(msg) {
+                        ContinueState::Stop => 
+                            stop.store(true, Ordering::Relaxed),
+                        _ => {},
+                    }
+
+                    if stop.load(Ordering::Relaxed) {
+                        break;
+                    }
                 }
             } );
 
             self.threads.borrow_mut().push(thread);
+        }
+
+    }
+
+    pub fn join(&self) {
+
+        let mut threads = self.threads.borrow_mut();
+
+        for thread in threads.drain(..) {
+            thread.join().unwrap();
         }
 
     }
@@ -128,9 +150,10 @@ where H: 'static + Handler + Send + Sync {
 impl <H> Handler for Threadpool<H>
 where H: 'static + Handler + Send + Sync {
 
-    fn handle (&self, msg : Message) {
+    fn handle (&self, msg : Message) -> ContinueState {
 
         self.in_queue.enqueue(msg);
+        ContinueState::Continue
 
     }
 

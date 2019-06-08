@@ -39,9 +39,14 @@ pub const MAX_SAFE_UDP_PAYLOAD_LEN : usize = 512;
 
 /*----------------------------------------------------------------------------*/
 
+pub enum ContinueState {
+    Stop,
+    Continue
+}
+
 pub trait Handler {
 
-    fn handle (&self, msg : Message);
+    fn handle (&self, msg : Message) -> ContinueState;
 
 }
 
