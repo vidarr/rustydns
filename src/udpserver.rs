@@ -38,7 +38,7 @@ use mio::net::UdpSocket;
 use std::time::Duration;
 use std::net::SocketAddr;
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use udp::{MAX_SAFE_UDP_PAYLOAD_LEN, Handler, Message};
 
@@ -48,7 +48,7 @@ pub struct UdpServer<'a> {
 
     poll : Poll,
     listen_socket : UdpSocket,
-    out_queue : Mutex<VecDeque<Message>>,
+    out_queue : Arc<Mutex<VecDeque<Message>>>,
     handler : &'a Handler,
 
 }
@@ -57,7 +57,10 @@ pub struct UdpServer<'a> {
 
 impl<'a> UdpServer<'a> {
 
-    pub fn bind_to<UH : Handler> (listen_addr_str : &str, handler : &'a UH)
+    pub fn bind_to<UH : Handler> (
+        listen_addr_str : &str,
+        handler : &'a UH,
+        queue : Option<Arc<Mutex<VecDeque<Message>>>>)
         -> Result<UdpServer<'a>, &'static str> {
 
             let max_queue_len = 200;
@@ -79,21 +82,22 @@ impl<'a> UdpServer<'a> {
                 Err(_) => return Err("could not create mio:Poll")
             };
 
-            if poll.register(&listen_socket, Token(0), Ready::readable() | Ready::writable(), PollOpt::edge()).is_err() {
+            if poll.register(
+                &listen_socket,
+                Token(0),
+                Ready::readable() | Ready::writable(),
+                PollOpt::edge()).is_err() {
+
                 return Err("could not register listening socket");
+
             };
 
-            let out_queue = VecDeque::with_capacity(max_queue_len);
+            let out_queue = match queue {
+                None => Arc::new(Mutex::new(VecDeque::with_capacity(max_queue_len))),
+                Some(q) => q.clone(),
+            };
 
-            // out_queue : RefCell::new(VecDeque::with_capacity(max_queue_len)),
-
-            Ok(UdpServer {
-                poll : poll,
-                listen_socket : listen_socket,
-                out_queue : Mutex::new(out_queue),
-                handler : handler,
-
-            })
+            Ok(UdpServer {poll, listen_socket, out_queue, handler})
 
         }
 
@@ -101,9 +105,6 @@ impl<'a> UdpServer<'a> {
 
         let mut events = Events::with_capacity(1024);
         let timeout = Duration::from_millis(500);
-
-        let readable = Ready::readable();
-        let writable = Ready::writable();
 
         loop {
 
@@ -120,14 +121,14 @@ impl<'a> UdpServer<'a> {
                 let readiness = event.readiness();
 
                 if readiness.is_readable() {
-
                     int_handle_read(self);
-
                 }
 
                 if readiness.is_writable() {
 
-                    int_handle_write(self);
+                    if int_handle_write(self).is_err() {
+                        println!("Sending of data failed");
+                    }
 
                 }
 

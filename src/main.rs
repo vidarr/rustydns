@@ -39,10 +39,15 @@ mod udpserver;
 use self::udp::{Message, Handler};
 use self::udpserver::UdpServer;
 use self::threadpool::Threadpool;
+use std::sync::{Arc, Mutex};
+
+use std::collections::VecDeque;
 
 /*----------------------------------------------------------------------------*/
 
 struct DummyHandler {
+
+    queue : Arc<Mutex<VecDeque<Message>>>,
 
 }
 
@@ -55,17 +60,29 @@ impl Handler for DummyHandler {
 
     fn handle (&self, msg : Message) {
 
-        let actually_used = &msg.buffer[.. msg.num_bytes];
-        let data_str = match std::str::from_utf8(actually_used) {
-            Err(_) => "Could not decode data",
-            Ok(s) => s,
-        };
+        {
+            let actually_used = &msg.buffer[.. msg.num_bytes];
+            let data_str = match std::str::from_utf8(actually_used) {
+                Err(_) => "Could not decode data",
+                Ok(s) => s,
+            };
+            println!("{}", data_str);
+        }
 
-        println!("{}", data_str);
+        self.queue.lock().unwrap().push_back(msg);
 
     }
 
 }
+
+fn create_worker() -> DummyHandler {
+    let queue = Arc::new(Mutex::new(VecDeque::with_capacity(100)));
+    DummyHandler{queue}
+}
+
+/*----------------------------------------------------------------------------*/
+
+static worker : DummyHandler = create_worker();
 
 /*----------------------------------------------------------------------------*/
 
@@ -73,12 +90,19 @@ fn main() {
 
     let listen_addr_str = "127.0.0.1:1104";
 
-    let threadpool = Threadpool::new(&DummyHandler{}, 100);
+    let threadpool = Threadpool::new(&worker, 100);
 
     threadpool.run(4);
 
-    let udp_server = match UdpServer::bind_to(listen_addr_str, &threadpool) {
+    let udp_server = UdpServer::bind_to(
+        listen_addr_str,
+        &threadpool,
+        Some(worker.queue.clone()));
+
+    let udp_server = match udp_server {
+
         Ok(p) => p,
+
         Err(msg) => {
             println!("{}", msg);
             return;
