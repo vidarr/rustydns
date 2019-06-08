@@ -36,7 +36,7 @@ extern crate mio;
 mod udp;
 mod threadpool;
 mod udpserver;
-use self::udp::{Message, Handler};
+use self::udp::{ContinueState, Message, Handler};
 use self::udpserver::UdpServer;
 use self::threadpool::Threadpool;
 use std::sync::{Arc, Mutex};
@@ -58,7 +58,7 @@ struct DummyHandler {
  */
 impl Handler for DummyHandler {
 
-    fn handle (&self, msg : Message) {
+    fn handle (&self, msg : Message) -> ContinueState {
 
         {
             let actually_used = &msg.buffer[.. msg.num_bytes];
@@ -71,6 +71,8 @@ impl Handler for DummyHandler {
 
         self.queue.lock().unwrap().push_back(msg);
 
+        ContinueState::Continue
+
     }
 
 }
@@ -82,17 +84,17 @@ fn create_worker() -> DummyHandler {
 
 /*----------------------------------------------------------------------------*/
 
-static worker : DummyHandler = create_worker();
-
-/*----------------------------------------------------------------------------*/
-
 fn main() {
 
     let listen_addr_str = "127.0.0.1:1104";
 
-    let threadpool = Threadpool::new(&worker, 100);
+    let worker = Arc::new(create_worker());
+
+    let threadpool = Threadpool::new(worker.clone(), 100);
 
     threadpool.run(4);
+
+    println!("Start listening on {}", listen_addr_str);
 
     let udp_server = UdpServer::bind_to(
         listen_addr_str,
@@ -110,6 +112,8 @@ fn main() {
     };
 
     udp_server.run();
+
+    threadpool.join();
 
 }
 

@@ -55,6 +55,9 @@ pub struct UdpServer<'a> {
 
 /*----------------------------------------------------------------------------*/
 
+/**
+ * TODO: due to edge trigger mode, data is currently not read reliably
+ */
 impl<'a> UdpServer<'a> {
 
     pub fn bind_to<UH : Handler> (
