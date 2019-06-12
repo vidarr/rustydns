@@ -29,7 +29,7 @@
 use ::std::str::FromStr;
 use ::std::cmp::PartialEq;
 use rustydns::{AsBytes, DnsEntity};
-use testhelpers::common::{print_name_bytes, print_str_as_bytes};
+use testhelpers::common::{print_str_as_bytes};
 /*----------------------------------------------------------------------------*/
 
 pub fn check_from_bytes<T: AsBytes + FromStr + PartialEq<T>>
@@ -67,7 +67,8 @@ pub fn check_partial_eq<T: PartialEq + DnsEntity>(str1: &str, str2: &str) -> boo
 
 /*----------------------------------------------------------------------------*/
 
-pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool {
+pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool
+{
 
     let object = T::from_str(s);
     if object.is_err() {
@@ -76,15 +77,16 @@ pub fn check_to_bytes<T: AsBytes + FromStr>(s: &str, expected: Vec<u8>) -> bool 
 
     let object = object.ok().unwrap();
 
-    let mut v = Vec::<u8>::new();
+    let mut v = [0u8; 512];
 
-    if ! object.to_bytes(&mut v).is_ok() {
-        return false;
-    }
+    let length = match object.to_bytes(&mut v) {
+        Ok(length) => length,
+        Err(_) => return false
+    };
 
-    print_name_bytes(&v[..]);
+    println!("length {}  : {:?}", length, &v[.. length]);
 
-    expected.eq(&v)
+    expected == (&v[.. length])
 
 }
 

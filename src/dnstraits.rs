@@ -34,7 +34,7 @@ use ::std::str::FromStr;
 
 pub trait AsBytes<T=Self> {
 
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str>;
+    fn to_bytes(&self, target: &mut [u8]) -> Result<usize, &'static str>;
 
     fn from_bytes(bytes: &[u8]) -> Result<T, &'static str>;
 

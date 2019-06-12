@@ -31,12 +31,13 @@ use ::std::str::FromStr;
 use ::std::net::Ipv4Addr;
 use dnsname::Name;
 use ::std::fmt;
+use ::std::cmp::PartialEq;
 
 /******************************************************************************
  *                                             TYPE
  ******************************************************************************/
 
-/// Representation of a DNS Resource Record
+/// Representation of a DNS Resource Record - Data portion
 #[derive(PartialEq)]
 #[derive(Debug)]
 pub enum Record {
@@ -45,6 +46,14 @@ pub enum Record {
     PTR(Name)
 
 }
+
+/*----------------------------------------------------------------------------*/
+
+// pub enum RecordType {
+//     TypeA = 1,
+//     TypePtr = 12,
+// 
+// }
 
 /*----------------------------------------------------------------------------*/
 
@@ -104,10 +113,14 @@ impl FromStr for Record {
 
 impl AsBytes for Ipv4Addr {
 
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+    fn to_bytes(&self, target: &mut [u8]) -> Result<usize, &'static str> {
 
-        target.extend_from_slice(&self.octets());
-        Ok(())
+        if target.len() < 4 {
+            return Err("Target buffe too small");
+        }
+
+        target[.. 4].copy_from_slice(&self.octets());
+        Ok(4)
 
     }
 
@@ -144,11 +157,39 @@ impl fmt::Display for Record {
 
 /*----------------------------------------------------------------------------*/
 
-// impl cmp::PartialEq for Record {
+// impl AsBytes for Record {
+// 
+//     fn to_bytes(&self, mut target: &[u8]) -> Result<(), &'static str> {
+// 
+//         match self {
+//             A(address) => {
+//                 target.push_back(TypeA);
+//                 target.push_back(1);   // 'class' field
+//                 // resource data length (1 octet)
+//                 address.to_bytes(target)
+//             }
+//             PTR(name) => {
+//                 target.push_back(TypePtr);
+//                 name.to_bytes(target)
+//             },
+//         }
+// 
+//         target.extend_from_slice(&self.octets());
+//         Ok(())
+// 
+//     }
+// 
+//     fn from_bytes(bytes: &[u8]) -> Result<Ipv4Addr, &'static str> {
+// 
+//     }
+// 
+// }
+
+// impl ::std::cmp::PartialEq for Record {
 // 
 //     fn eq(&self, other: &Record) -> bool {
 // 
-//         self.data.iter().zip(other.data.iter()).all(
+//         self.iter().zip(other.data.iter()).all(
 //             |(a,b)| a.eq(b))
 // 
 //     }

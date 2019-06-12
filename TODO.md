@@ -6,4 +6,12 @@ AND: Label1 == Label2   case-insensitive
 
 # Record
 
-Implement using enum (See Zone)
+Implement serialization / deserialization
+
+# Message
+
+Implement
+
+# Question
+
+Implement

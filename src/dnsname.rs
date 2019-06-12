@@ -88,13 +88,23 @@ impl FromStr for Name {
 
 impl AsBytes for Name {
 
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+    fn to_bytes(&self, target: &mut [u8]) -> Result<usize, &'static str> {
+
+        let max_len = target.len();
+        let mut write_slice = target;
 
         for l in &self.data {
-            let _l = l.to_bytes(target)?;
+            match l.to_bytes(write_slice) {
+                Ok(remainder) => if remainder < max_len {
+                    write_slice = &mut write_slice[remainder..];
+                } else {
+                    return Err("Target buffer too small");
+                },
+                Err(s) => return Err(s),
+            }
         }
 
-        Ok(())
+        Ok(max_len - write_slice.len())
 
     }
 

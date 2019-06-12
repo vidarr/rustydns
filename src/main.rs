@@ -86,6 +86,13 @@ fn create_worker() -> DummyHandler {
 
 fn main() {
 
+    let test = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    println!("0..0 {:?}    0..1 {:?}    0..2 {:?}    ..0 {:?}    ..1 {:?}  0.. {:?}   1.. {:?}",
+             &test[0..0], &test[0..1], &test[0..2],
+             &test[..0], &test[..1], &test[0..],
+             &test[1..]);
+
     let listen_addr_str = "127.0.0.1:1104";
 
     let worker = Arc::new(create_worker());

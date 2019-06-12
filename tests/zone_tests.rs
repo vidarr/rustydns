@@ -114,6 +114,37 @@ fn test_zone_add_from_str() {
     // Should not be possible since 'org' is already a sub-zone
     assert!(zone.add_from_str(&entry_string).is_err());
 
+    assert!(zone.add_from_str("nordri.alfheim.yggdrasil A 1.2.3.4").is_ok());
+    assert!(zone.add_from_str("1.2.3.4 PTR sudri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("vidarr.landvidi.asgard.yggdrasil A 10.10.10.10").is_ok());
+    assert!(zone.add_from_str("austri.alfheim.yggdrasil A 10.10.10.11").is_ok());
+    assert!(zone.add_from_str("westri.alfheim.yggdrasil A 10.10.11.10").is_ok());
+    assert!(zone.add_from_str("heimdall.bifroest.asgard.yggdrasil A 10.9.10.10").is_ok());
+
+    // For sake of completeness, and although this kind of error should have been
+    // checked in test_zone_add_from_str()
+    assert!(zone.add_from_str("svadilfari.asgard.yggdrasil 10.9.10.10").is_err());
+    assert!(zone.add_from_str("svadilfari.asgard.yggdrasil A").is_err());
+    assert!(zone.add_from_str("svadilfari.asgard.yggdrasil BBBBBBB 1.1.1.1").is_err());
+    assert!(zone.add_from_str("A 1.1.1.1").is_err());
+    assert!(zone.add_from_str("  A 1.1.1.1").is_err());
+    assert!(zone.add_from_str(" svadilfari.asgard.yggdrasil    A  2.2.2.2    ").is_ok());
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+fn check_zone_lookup(zone : &Zone, entry : &str, expected : Option<&Record>) -> bool {
+
+    let n = Name::from_str(entry).unwrap();
+    let r = zone.lookup(&n);
+
+    if expected != r {
+        return false;
+    }
+
+    return true;
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -121,14 +152,47 @@ fn test_zone_add_from_str() {
 #[test]
 fn test_zone_lookup() {
 
-    let mut zone = Zone::new();
+    let zone = &mut Zone::new();
 
-    assert!(zone.add_from_str("nordri.alfheim.yggdrasil").is_ok());
-    assert!(zone.add_from_str("sudri.alfheim.yggdrasil").is_ok());
-    assert!(zone.add_from_str("vidarr.landvidi.asgard.yggdrasil").is_ok());
-    assert!(zone.add_from_str("austri.alfheim.yggdrasil").is_ok());
-    assert!(zone.add_from_str("westri.alfheim.yggdrasil").is_ok());
-    assert!(zone.add_from_str("heimdall.bifroest.asgard.yggdrasil").is_ok());
+    assert!(zone.add_from_str("nordri.alfheim.yggdrasil A 1.2.3.4").is_ok());
+    assert!(zone.add_from_str("1.2.3.4 PTR sudri.alfheim.yggdrasil").is_ok());
+    assert!(zone.add_from_str("vidarr.landvidi.asgard.yggdrasil A 10.10.10.10").is_ok());
+    assert!(zone.add_from_str("austri.alfheim.yggdrasil A 10.10.10.11").is_ok());
+    assert!(zone.add_from_str("westri.alfheim.yggdrasil A 10.10.11.10").is_ok());
+    assert!(zone.add_from_str("heimdall.bifroest.asgard.yggdrasil A 10.9.10.10").is_ok());
+
+    assert!(zone.add_from_str(" svadilfari.asgard.yggdrasil    A  2.2.2.2    ").is_ok());
+
+    assert!(check_zone_lookup(zone, "found.not", Option::None));
+
+    assert!(check_zone_lookup(zone, "heimdall.bifroest.asgard.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 10.9.10.10").unwrap())));
+
+    assert!(check_zone_lookup(zone, "nordri.alfheim.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 1.2.3.4").unwrap())));
+
+    assert!(check_zone_lookup(zone, "1.2.3.4",
+                              Option::Some(
+                                  &Record::from_str("PTR sudri.alfheim.yggdrasil").unwrap())));
+
+    assert!(check_zone_lookup(zone, "vidarr.landvidi.asgard.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 10.10.10.10").unwrap())));
+
+    assert!(check_zone_lookup(zone, "austri.alfheim.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 10.10.10.11").unwrap())));
+
+    assert!(check_zone_lookup(zone, "westri.alfheim.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 10.10.11.10").unwrap())));
+
+    assert!(check_zone_lookup(zone, "heimdall.bifroest.asgard.yggdrasil",
+                              Option::Some(
+                                  &Record::from_str("A 10.9.10.10").unwrap())));
+
 
 }
 

@@ -45,17 +45,23 @@ pub struct Label {
 
 impl AsBytes for Label {
 
-    fn to_bytes(&self, target: &mut Vec<u8>) -> Result<(), &'static str> {
+    fn to_bytes(&self, target: &mut [u8]) -> Result<usize, &'static str> {
 
-        let len = self.data[0];
+        let len_octet = self.data[0];
+        let len = len_octet as usize;
 
         if len > 63 {
-            return Err("Label too long")
+            return Err("Label too long");
         }
 
-        target.extend(self.data[..(len + 1) as usize].iter().cloned());
+        if target.len() < len + 1 {
+            return Err("Target buffer too small");
+        }
 
-        Ok(())
+        target[0] = len_octet;
+        target[.. len + 1].copy_from_slice(&self.data[.. len + 1]);
+
+        Ok(len + 1)
 
     }
 
