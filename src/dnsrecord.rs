@@ -147,7 +147,7 @@ impl fmt::Display for Record {
                 Record::A(ref addr) => ("A", addr.to_string()),
                 Record::PTR(ref name) => ("PTR", name.to_string()),
             };
-        write!(f, "{} {}", t, d);
+        write!(f, "{} {}", t, d).ok();
 
         Ok(())
 
@@ -158,9 +158,9 @@ impl fmt::Display for Record {
 /*----------------------------------------------------------------------------*/
 
 // impl AsBytes for Record {
-// 
+//
 //     fn to_bytes(&self, mut target: &[u8]) -> Result<(), &'static str> {
-// 
+//
 //         match self {
 //             A(address) => {
 //                 target.push_back(TypeA);
@@ -173,27 +173,27 @@ impl fmt::Display for Record {
 //                 name.to_bytes(target)
 //             },
 //         }
-// 
+//
 //         target.extend_from_slice(&self.octets());
 //         Ok(())
-// 
+//
 //     }
-// 
+//
 //     fn from_bytes(bytes: &[u8]) -> Result<Ipv4Addr, &'static str> {
-// 
+//
 //     }
-// 
+//
 // }
 
 // impl ::std::cmp::PartialEq for Record {
-// 
+//
 //     fn eq(&self, other: &Record) -> bool {
-// 
+//
 //         self.iter().zip(other.data.iter()).all(
 //             |(a,b)| a.eq(b))
-// 
+//
 //     }
-// 
+//
 // }
 
 /*----------------------------------------------------------------------------*/

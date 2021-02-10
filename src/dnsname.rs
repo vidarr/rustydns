@@ -146,7 +146,7 @@ impl fmt::Display for Name {
 
         // This one is going to be really expensive, isn't it???
 
-        write!(f, "{}", Name::labels_to_string(&self.data));
+        write!(f, "{}", Name::labels_to_string(&self.data)).ok();
         Ok(())
     }
 

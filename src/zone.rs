@@ -88,7 +88,7 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
-    pub fn write(&self, f: &mut fmt::Write) -> fmt::Result {
+    pub fn write(&self, f: &mut dyn fmt::Write) -> fmt::Result {
         self.internal_fmt(f, &[])
     }
 
@@ -159,7 +159,7 @@ impl<'a> Zone {
 
     /*-----------------------------------------------------------------------*/
 
-    fn internal_fmt(&self, f: &mut fmt::Write, labels: &[Label]) -> fmt::Result {
+    fn internal_fmt(&self, f: &mut dyn fmt::Write, labels: &[Label]) -> fmt::Result {
 
         for (t, e) in &self.entries {
 
@@ -203,15 +203,15 @@ impl fmt::Display for Zone {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
-        write!(f, "[");
+        write!(f, "[").ok();
 
         for (name, record) in &self.entries {
 
-            write!(f, "{} {};", name, record);
+            write!(f, "{} {};", name, record).ok();
 
         }
 
-        write!(f, "]");
+        write!(f, "]").ok();
 
         Ok(())
 

@@ -107,6 +107,7 @@ where T: FromStr + ToString {
         },
         Ok(_) => {
             let serialized = object.ok().unwrap().to_string();
+            print!("{} converted to {}", s, serialized);
             print_str_as_bytes(&serialized);
             s.to_string().eq(&serialized)
         }

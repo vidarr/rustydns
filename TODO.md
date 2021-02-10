@@ -10,7 +10,7 @@ Implement serialization / deserialization
 
 # Message
 
-Implement
+Implement serialization / deserialization
 
 # Question
 

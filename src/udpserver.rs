@@ -49,7 +49,7 @@ pub struct UdpServer<'a> {
     poll : Poll,
     listen_socket : UdpSocket,
     out_queue : Arc<Mutex<VecDeque<Message>>>,
-    handler : &'a Handler,
+    handler : &'a dyn Handler,
 
 }
 
