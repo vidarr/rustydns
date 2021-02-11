@@ -28,14 +28,15 @@
 //
 
 /*----------------------------------------------------------------------------*/
-
 use ::std::str;
 use ::std::str::FromStr;
+use dnstraits::AsBytes;
 use ::std::fmt;
 use dnsname::Name;
 
 /*----------------------------------------------------------------------------*/
 
+#[derive(Clone, Copy)]
 pub enum QuestionType {
 
     A = 1,
@@ -78,6 +79,65 @@ impl FromStr for QuestionType {
 
 /*----------------------------------------------------------------------------*/
 
+impl AsBytes for QuestionType {
+
+    fn to_bytes(&self, target: &mut [u8]) -> Result<usize, &'static str> {
+
+        let max_len = target.len();
+
+        if max_len < 2 {
+
+            return Err("Too few bytes left to write QuestionType");
+
+        }
+
+        let qt_u16 = *self as u16;
+        let qt_u16_be = u16::to_be_bytes(qt_u16);
+
+        let len = qt_u16_be.len();
+
+        target[.. len].copy_from_slice(&qt_u16_be);
+
+        Ok(qt_u16_be.len())
+
+    }
+
+     /*-----------------------------------------------------------------------*/
+
+    fn from_bytes(bytes: &[u8])
+        -> Result<Self, &'static str> {
+
+        let bytes_len = bytes.len();
+
+        let len = 2;
+
+        if bytes_len < len {
+            return Err("too few bytes");
+        }
+
+        let qtype_u16= u16::from_be_bytes([bytes[0], bytes[1]]);
+
+        let qtype = match qtype_u16 {
+
+            1 => QuestionType::A,
+            2 => QuestionType::Ns,
+            5 => QuestionType::Cname,
+            12 => QuestionType::Ptr,
+            13 => QuestionType::Hinfo,
+            15 => QuestionType::Mx,
+            252 => QuestionType::Axfr,
+            255 => QuestionType::Any,
+            _ => return Err("Invalid question type")
+        };
+
+        Ok(qtype)
+
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
 impl fmt::Display for QuestionType {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -86,6 +146,23 @@ impl fmt::Display for QuestionType {
 
         write!(f, "{}", QuestionType::to_string(&self)).ok();
         Ok(())
+    }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+impl PartialEq for QuestionType {
+
+    fn eq(&self, other : &Self) -> bool {
+
+        let me = *self as u16;
+        let you = *other as u16;
+
+        print!("Comparing {} with {}: {}", &me, &you, me == you);
+
+        me == you
+
     }
 
 }

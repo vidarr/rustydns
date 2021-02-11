@@ -36,11 +36,40 @@
 extern crate rustydns;
 mod testhelpers;
 
-use ::std::str::FromStr;
-
-use testhelpers::check_to_from_string;
+use testhelpers::{check_to_bytes,  check_from_bytes, check_to_from_string};
 use rustydns::QuestionType;
 
+/*----------------------------------------------------------------------------*/
+
+#[test]
+fn test_question_type_to_bytes() {
+
+    assert!(check_to_bytes::<QuestionType>("A", vec![0u8, 1u8]));
+    assert!(check_to_bytes::<QuestionType>("NS", vec![0u8, 2u8]));
+    assert!(check_to_bytes::<QuestionType>("CNAME", vec![0u8, 5u8]));
+    assert!(check_to_bytes::<QuestionType>("PTR", vec![0u8, 12u8]));
+    assert!(check_to_bytes::<QuestionType>("HINFO", vec![0u8, 13u8]));
+    assert!(check_to_bytes::<QuestionType>("MX", vec![0u8, 15u8]));
+    assert!(check_to_bytes::<QuestionType>("AXFR", vec![0u8, 252u8]));
+    assert!(check_to_bytes::<QuestionType>("ANY", vec![0u8, 255u8]));
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+#[test]
+fn test_question_type_from_bytes() {
+
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 1u8], Ok("A")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 2u8], Ok("NS")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 5u8], Ok("CNAME")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 12u8], Ok("PTR")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 13u8], Ok("HINFO")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 15u8], Ok("MX")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 252u8], Ok("AXFR")));
+    assert!(check_from_bytes::<QuestionType>( &[0u8, 255u8], Ok("ANY")));
+
+}
 /*----------------------------------------------------------------------------*/
 
 #[test]

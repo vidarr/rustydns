@@ -29,13 +29,16 @@
 use ::std::str::FromStr;
 use ::std::cmp::PartialEq;
 use rustydns::{AsBytes, DnsEntity};
-use testhelpers::common::{print_str_as_bytes};
+
+use super::common::print_str_as_bytes;
+
 /*----------------------------------------------------------------------------*/
 
 pub fn check_from_bytes<T: AsBytes + FromStr + PartialEq<T>>
 (bytes: &[u8], exp: Result<&str, &str>) -> bool {
 
     let result = T::from_bytes(bytes);
+
     match exp {
         Ok(s) => {
             let entity = &result.unwrap();
